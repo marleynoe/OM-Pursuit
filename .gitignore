@@ -1,0 +1,16 @@
+# Mac OSX Finder
+
+.DS_Store
+# *(Autosaved).* 
+
+
+
+
+# LispWorks files
+
+.xfasl
+.fasl
+.nfasl
+.ofasl
+.ufasl
+.lisp~
