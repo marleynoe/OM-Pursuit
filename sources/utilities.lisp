@@ -202,7 +202,7 @@
                       (list (list-min (first they)) (list-max (second they))))
               )))
 
-; %%%%%%%%%%%% for drawing tfregions %%%%%%%%%%%%%
+; %%%%%%%%%%%% for drawing tfregions %%%%%%%%%%%%% COULDN'T I USE THIS SIMPLY FOR THE DRAWING INTO THE MAQUETTE?
 
 (defmethod! draw-tfregions ((markers list) (bpfs list) (scales number) (ranges number))
             :icon 04
@@ -300,7 +300,7 @@
             (when (equal mode "linear")
               (setf output (loop for partial in grouped-partials collect
                                  (let ((thepartial (mat-trans (cdr partial))))
-                                   (3dc-from-list (om* 1000 (fourth thepartial)) (first thepartial) (om* 1000 (second thepartial)) '3dc 10) ;x=time, y=freq, z=amp
+                                   (3dc-from-list (om* 1000 (fourth thepartial)) (first thepartial) (om* 10000 (second thepartial)) '3dc 10) ;x=time, y=freq, z=amp
                                    ;(3dc-from-list (fourth thepartial) (first thepartial) (om* 1000 (second thepartial)) '3dc 10)
                                    )))
               )
@@ -405,7 +405,7 @@
 (defmethod sound-p ((self t)) nil) 
 
 
-; get any kind of SDIF marker or onsets in voices or chord-seqs
+; get any kind of SDIF marker or onsets in voices or chord-seqs -> compare with OM-SoX
 
 (defmethod! get-markers ((self sdiffile) &key specdistance transient hand quantize mintime maxtime)
             ;:initvals '(nil t t t nil nil nil)
@@ -757,8 +757,16 @@ If <samplerate> is NIL, the OM default sample rate is used to calculate the samp
               ;(flat clpairs 1)))
               clpairs))
 
+;============== for copying files =================
 
-;============== stupid hack to avoid 10 decimals limit ==============
+#|
+(defmethod! copydict ((sourcepath string) (target-dir string) &key)
+            (om-copy-file)
+            )
+|#
+
+
+;============== stupid hack to override 10 decimals limit for BPFs ==============
 
 (defmethod check-decimals ((self bpf))
     (unless (and (integerp (decimals self))

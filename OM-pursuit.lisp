@@ -22,6 +22,8 @@
 
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+; why does it require om-fil? and OMchroma? should work with class-arrays and without filters
+
 (require-library "om-fil" t)
 (require-library "OMChroma" t)
 
@@ -44,23 +46,24 @@
 
 (mapcar #'(lambda (file) (compile&load (om-relative-path '("sources") file )))
         '(
-          "pursuit-prefs"
+          "preferences"
           "file-io"
           "editors"
           "array-tools"
           "dispatch-cseq"
-          ;"adt"
           "gabor"
           "fof"
           "sgn"
-          "sgl"
+          "sgntv"
+          "sgnct"
           "partials"
           "score-tools"
           "statistics"
-          "utils"
+          "utilities"
           "array-2-atoms"
           "make-dictionary"
-          "sge"
+          ;"sge"
+          ;"sgl"
           ))
 (om::fill-library '(
                     ("Fof" (

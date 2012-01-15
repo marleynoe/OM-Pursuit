@@ -23,12 +23,12 @@
 ; ---------------------------
 
 (defclass LockedBoxCall (OMBoxCall) ())
-(defmethod get-boxcallclass-fun ((self (eql 'sgn-decomp))) 'LockedBoxCall)
+(defmethod get-boxcallclass-fun ((self (eql 'sgntv-decomp))) 'LockedBoxCall)
 (defmethod initialize-instance :before ((self LockedBoxCall) &rest args)
 (setf (om::allow-lock self) "&")) ; for eval-once-mode replace the "x" with a "&", for lambda "l"
 
 
-(defmethod! sgn-params (&key (markers '((0.1 0.2) (0.1 0.2) (0.1 0.2) (0.1 0.2))) (corpora t)  
+(defmethod! sgntv-params (&key (markers '((0.1 0.2) (0.1 0.2) (0.1 0.2) (0.1 0.2))) (corpora t)  
                                (max-atoms 5) (min-deviation 0.001))
                         :icon 04
                         :initvals '(((0.1 0.2) (0.1 0.2) (0.1 0.2) (0.1 0.2)) nil 5 0.001)
@@ -42,40 +42,41 @@
                                                   max-atoms min-deviation)))
                           thestring))
                         
-;(target_path, dictionary_path, cmax, SRR, mod_outpath, res_outpath, sdif_outpath)
+;(target_path, dictionary_path, cmax, globscalar, SRR, mod_outpath, res_outpath, sdif_outpath)
 
-(defmethod! sgn-decomp ((snd sound) (maxatoms number) (srr number) (dict-path t) &key outpath)
+(defmethod! sgntv-decomp ((snd sound) (maxatoms number) (srr number) (globalscalar number) (dict-path t) &key outpath)
             :icon 04
             :numouts 3
-            :initvals '(nil nil nil nil nil)
-            :indoc '("sound" "max num of atoms" "signal-residual-ratio" "dictionary")
+            :initvals '(nil nil nil nil nil nil)
+            :indoc '("sound" "max num of atoms" "signal-residual-ratio" "globalscalar" "dictionary")
             :outdoc '("decomposition-sdif-file" "model-audio-file" "residual-audio-file")
 
-            (if (probe-file *sgn-path*)
+            (if (probe-file *sgntv-path*)
                 (let* ((inpath (sound-path snd))
                        (filename (pathname-name inpath))
-                       (name (or (and outpath (pathname-name outpath)) (format nil "~a_sgn" filename)))
+                       (name (or (and outpath (pathname-name outpath)) (format nil "~a_sgntv" filename)))
                        (outdir (or outpath (om-make-pathname :directory (append (pathname-directory inpath) (list name)))))                      
                        (sdif-outfile (om-make-pathname :directory (append (pathname-directory outdir))
-                                                       :name (string+ name "_sgn_decomp") :type "sdif"))
+                                                       :name (string+ name "_sgntv_decomp") :type "sdif"))
                        (audio-outfile (om-make-pathname :directory (append (pathname-directory outdir))
-                                                        :name (string+ name "_sgn-synthesis") :type "wav"))
+                                                        :name (string+ name "_sgntv-synthesis") :type "wav"))
                        (residual-outfile (om-make-pathname :directory (append (pathname-directory outdir))
-                                                        :name (string+ name "_sgn-residual") :type "wav"))
+                                                        :name (string+ name "_sgntv-residual") :type "wav"))
                        )
                   (om-create-directory outdir)
                   (setf str 
-                        (format nil "~s ~s ~s ~d ~d ~s ~s ~s" 
-                                (namestring *sgn-path*)
+                        (format nil "~s ~s ~s ~d ~d ~d ~s ~s ~s" 
+                                (namestring *sgntv-path*)
                                 (namestring inpath)
                                 (namestring dict-path)
                                 maxatoms
+                                globalscalar
                                 srr
                                 (namestring audio-outfile)
                                 (namestring residual-outfile)
                                 (namestring sdif-outfile)
                                 ))
-                  ;(print str)
+                  (print str)
                   ;(print outdir)
                   ;(print sdif-outfile)
                   ;(print audio-outfile)
@@ -85,12 +86,12 @@
                   (values (probe-file sdif-outfile) (probe-file audio-outfile) (probe-file residual-outfile))           
                   )
               (progn 
-                (print "sgnDecomp not found... set in preferences?")
+                (print "sgntvDecomp not found... set in preferences?")
                 nil
                 ))
             )
 
-(defmethod! get-sgn-params ((self sdiffile) &optional mintime maxtime)
+(defmethod! get-sgntv-params ((self sdiffile) &optional mintime maxtime)
             :icon 04
             :numouts 8
             :outdoc '("numatoms" "onset" "duration" "magnitude" "norm" "corpus-index" "file-index" "filepath")
@@ -106,16 +107,16 @@
                (fifth translist)                    ;norm (lin)
                (om-round (third translist))        ;corpus-index (int)
                (om-round (fourth translist))         ;file-index (int)
-               (get-sgn-paths self (om-round (third translist)) (om-round (fourth translist))) ;filepath (string)
+               (get-sgntv-paths self (om-round (third translist)) (om-round (fourth translist))) ;filepath (string)
               )))
 
 
-(defmethod! get-sgn-array ((self sdiffile) &optional mintime maxtime)
+(defmethod! get-sgntv-array ((self sdiffile) &optional mintime maxtime)
             :icon 04
             :numouts 1
-            :outdoc '("the sgn array")
-            (let* ((thedata (multiple-value-list (get-sgn-params self mintime maxtime)))
-                   (thearray (make-instance 'sgn-array 
+            :outdoc '("the sgntv array")
+            (let* ((thedata (multiple-value-list (get-sgntv-params self mintime maxtime)))
+                   (thearray (make-instance 'sgntv-array 
                                             :numcols (first thedata)
                                             :onset (second thedata)
                                             :duration (third thedata)
@@ -127,16 +128,16 @@
                                             )))
               thearray))
 
-(defmethod! get-sgn-array-resamp ((self sdiffile) (numcols integer) &optional mintime maxtime)
+(defmethod! get-sgntv-array-resamp ((self sdiffile) (numcols integer) &optional mintime maxtime)
             :icon 04
             :numouts 1
-            :outdoc '("the re-sampled sgn array")
-            (let* ((thedata (multiple-value-list (get-sgn-params self mintime maxtime)))
+            :outdoc '("the re-sampled sgntv array")
+            (let* ((thedata (multiple-value-list (get-sgntv-params self mintime maxtime)))
                    (corpus-index (simple-bpf-from-list '(0 1) (sixth thedata) 'bpf 15))
                    (file-index (simple-bpf-from-list '(0 1) (nth 6 thedata) 'bpf 15))
                    (sampled-corpus-index (third (multiple-value-list (om-sample corpus-index numcols))))
                    (sampled-file-index (third (multiple-value-list (om-sample file-index numcols))))
-                   (thearray (make-instance 'sgn-array 
+                   (thearray (make-instance 'sgntv-array 
                                             :numcols numcols
                                             :onset (simple-bpf-from-list '(0 1) (second thedata) 'bpf 15)
                                             :duration (simple-bpf-from-list '(0 1) (third thedata) 'bpf 15)
@@ -144,15 +145,15 @@
                                             :norm (simple-bpf-from-list '(0 1) (fifth thedata) 'bpf 15)
                                             :corpus-index corpus-index
                                             :file-index file-index
-                                            :filepath (get-sgn-paths self (om-round sampled-corpus-index) (om-round sampled-file-index))
+                                            :filepath (get-sgntv-paths self (om-round sampled-corpus-index) (om-round sampled-file-index))
                    )))
               thearray))
 
 
 
-(defmethod objfromobjs ((self sdiffile) (type sgn-array))
-  (let* ((sdifdata (multiple-value-list (get-sgn-params self)))
-         (new (make-instance 'sgn-array 
+(defmethod objfromobjs ((self sdiffile) (type sgntv-array))
+  (let* ((sdifdata (multiple-value-list (get-sgntv-params self)))
+         (new (make-instance 'sgntv-array 
                :numcols (first sdifdata)
                :onset (second sdifdata)
                :duration (third sdifdata)
@@ -166,12 +167,12 @@
 
 
 
-(defmethod! get-sgn-paths ((self sdiffile) (corpusid list) (fileid list))
+(defmethod! get-sgntv-paths ((self sdiffile) (corpusid list) (fileid list))
             (mapcar (lambda (corpora files)
-                      (get-sgn-paths self corpora files)) corpusid fileid)
+                      (get-sgntv-paths self corpora files)) corpusid fileid)
             )
 
-(defmethod! get-sgn-paths ((self sdiffile) (corpusid number) (fileid number))
+(defmethod! get-sgntv-paths ((self sdiffile) (corpusid number) (fileid number))
             (let* ((nvtlist (getnvtlist self))
                   (nvtkeys (loop for nvt in nvtlist collect 
                                  (find-in-nvt nvt "TableName")))
@@ -184,13 +185,13 @@
             )
 
 #|
-(defun sgn-amplitude (norm magnitude)
+(defun sgntv-amplitude (norm magnitude)
   (om/ 1 (om-abs (om* norm (om+ magnitude 0.00000001)))))
 
 ; (om/ 1 (om-abs (om* thenorm themagnitude)))   ;amplitude (lin)
 |#
 
-(defun sgn-amplitude (norm magnitude)
+(defun sgntv-amplitude (norm magnitude)
   (om* (om/ 1 norm) (om-abs magnitude)))
 
 (defun stringposition (thestring thelist)

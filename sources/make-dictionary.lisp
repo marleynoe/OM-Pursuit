@@ -56,6 +56,7 @@
                                                  (namestring dictionary-path)
                                                  ))
                                     )
+                              (print str)
                               ;(om-cmd-line str *sys-console*)
                               (sys:run-shell-command str :wait nil)
                               dictionary-path   

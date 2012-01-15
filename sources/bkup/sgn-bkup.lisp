@@ -20,13 +20,10 @@
 
 (in-package :om)
 
+
 ; ---------------------------
 
-(defclass LockedBoxCall (OMBoxCall) ())
-(defmethod get-boxcallclass-fun ((self (eql 'sgn-decomp))) 'LockedBoxCall)
-(defmethod initialize-instance :before ((self LockedBoxCall) &rest args)
-(setf (om::allow-lock self) "&")) ; for eval-once-mode replace the "x" with a "&", for lambda "l"
-
+; I need a function to convert an array back into an SDIF file.
 
 (defmethod! sgn-params (&key (markers '((0.1 0.2) (0.1 0.2) (0.1 0.2) (0.1 0.2))) (corpora t)  
                                (max-atoms 5) (min-deviation 0.001))
@@ -42,38 +39,33 @@
                                                   max-atoms min-deviation)))
                           thestring))
                         
-;(target_path, dictionary_path, cmax, SRR, mod_outpath, res_outpath, sdif_outpath)
 
-(defmethod! sgn-decomp ((snd sound) (maxatoms number) (srr number) (dict-path t) &key outpath)
+(defmethod! sgn-decomp ((snd sound) (commands string) &key outpath)
             :icon 04
             :numouts 3
-            :initvals '(nil nil nil nil nil)
-            :indoc '("sound" "max num of atoms" "signal-residual-ratio" "dictionary")
-            :outdoc '("decomposition-sdif-file" "model-audio-file" "residual-audio-file")
+            :initvals '(nil nil nil nil 0)
+            :indoc '("sound" "parameters" "outpath")
+            :outdoc '("decomposition-sdif-file" "decomposition-audio-file" "residual-audio-file")
 
             (if (probe-file *sgn-path*)
                 (let* ((inpath (sound-path snd))
                        (filename (pathname-name inpath))
                        (name (or (and outpath (pathname-name outpath)) (format nil "~a_sgn" filename)))
-                       (outdir (or outpath (om-make-pathname :directory (append (pathname-directory inpath) (list name)))))                      
+                       (outdir (or outpath (make-pathname :directory (append (pathname-directory inpath) (list name)))))                      
                        (sdif-outfile (om-make-pathname :directory (append (pathname-directory outdir))
-                                                       :name (string+ name "_sgn_decomp") :type "sdif"))
+                                                       :name (string+ filename "_soundgrain_decomp") :type "sdif"))
                        (audio-outfile (om-make-pathname :directory (append (pathname-directory outdir))
-                                                        :name (string+ name "_sgn-synthesis") :type "wav"))
+                                                        :name (string+ filename "_sg-synthesis") :type "wav"))
                        (residual-outfile (om-make-pathname :directory (append (pathname-directory outdir))
-                                                        :name (string+ name "_sgn-residual") :type "wav"))
+                                                        :name (string+ filename "_sg-residual") :type "wav"))
                        )
                   (om-create-directory outdir)
                   (setf str 
-                        (format nil "~s ~s ~s ~d ~d ~s ~s ~s" 
+                        (format nil "~s ~s ~s ~a" 
                                 (namestring *sgn-path*)
                                 (namestring inpath)
-                                (namestring dict-path)
-                                maxatoms
-                                srr
-                                (namestring audio-outfile)
-                                (namestring residual-outfile)
-                                (namestring sdif-outfile)
+                                (namestring outdir)
+                                commands
                                 ))
                   ;(print str)
                   ;(print outdir)
@@ -96,19 +88,21 @@
             :outdoc '("numatoms" "onset" "duration" "magnitude" "norm" "corpus-index" "file-index" "filepath")
             (let* ((sdiflist (flat (getsdifdata self 0 "XADS" "XSGM" nil nil nil mintime maxtime) 1))
                    (translist (mat-trans sdiflist))
-                   (samplerate 16000)
+                   (samplerate (get-decomp-fs self))
                    (reci-fs (/ 1 samplerate)))
               (values 
                (length sdiflist)                    ;numatoms             
-               (om* reci-fs (first translist))     ;onset (sec)
-               (om* reci-fs (second translist))      ;duration (sec)
-               (sixth translist)                    ;magnitude (lin)
-               (fifth translist)                    ;norm (lin)
-               (om-round (third translist))        ;corpus-index (int)
-               (om-round (fourth translist))         ;file-index (int)
-               (get-sgn-paths self (om-round (third translist)) (om-round (fourth translist))) ;filepath (string)
-              )))
+               (om* reci-fs (second translist))     ;onset (sec)
+               (om* reci-fs (third translist))      ;duration (sec)
+               (seventh translist)                  ;magnitude (lin)
+               (sixth translist)                    ;norm (lin)
+               (om-round (fourth translist))        ;corpus-index (int)
+               (om-round (fifth translist))         ;file-index (int)
+               (get-soundgrain-paths self (fourth translist) (fifth translist))) ;filepath (string)
+               ;(get-sge-paths self (fourth translist) (fifth translist)))
+               ))
 
+; (om/ 1 (om-abs (om* thenorm themagnitude)))   ;amplitude (lin)
 
 (defmethod! get-sgn-array ((self sdiffile) &optional mintime maxtime)
             :icon 04
@@ -144,11 +138,12 @@
                                             :norm (simple-bpf-from-list '(0 1) (fifth thedata) 'bpf 15)
                                             :corpus-index corpus-index
                                             :file-index file-index
-                                            :filepath (get-sgn-paths self (om-round sampled-corpus-index) (om-round sampled-file-index))
+                                            :filepath (get-soundgrain-paths self sampled-corpus-index sampled-file-index)
                    )))
               thearray))
 
 
+;make one get-sgn-array in which I can down- or upsample (like plot-sdif2)
 
 (defmethod objfromobjs ((self sdiffile) (type sgn-array))
   (let* ((sdifdata (multiple-value-list (get-sgn-params self)))
@@ -164,44 +159,10 @@
                )))
     new))
 
-
-
-(defmethod! get-sgn-paths ((self sdiffile) (corpusid list) (fileid list))
-            (mapcar (lambda (corpora files)
-                      (get-sgn-paths self corpora files)) corpusid fileid)
-            )
-
-(defmethod! get-sgn-paths ((self sdiffile) (corpusid number) (fileid number))
-            (let* ((nvtlist (getnvtlist self))
-                  (nvtkeys (loop for nvt in nvtlist collect 
-                                 (find-in-nvt nvt "TableName")))
-                  (corpusnvt (nth (- (stringposition "CorpusDirectories" nvtkeys) 1) nvtlist))
-                  (corpuspath (find-in-nvt corpusnvt (integer-to-string corpusid)))
-                  (filenvt (nth (- (stringposition (format nil "Corpus-~d" corpusid) nvtkeys) 1) nvtlist))
-                  (filename (find-in-nvt filenvt (integer-to-string fileid)))
-                  (filepath (pathname (format nil "~a/~a" corpuspath filename))))
-              filepath)
-            )
-
 #|
 (defun sgn-amplitude (norm magnitude)
   (om/ 1 (om-abs (om* norm (om+ magnitude 0.00000001)))))
-
-; (om/ 1 (om-abs (om* thenorm themagnitude)))   ;amplitude (lin)
 |#
 
 (defun sgn-amplitude (norm magnitude)
   (om* (om/ 1 norm) (om-abs magnitude)))
-
-(defun stringposition (thestring thelist)
-  (nth 0 (remove nil 
-                 (loop 
-                  for index from 1 to (length thelist) 
-                  for item in thelist collect
-                  (when (string-equal item thestring)
-                  index)
-                  ))))
-
-; NOTES =================
-; 
-; I need a function to convert an array back into an SDIF file.
