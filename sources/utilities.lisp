@@ -407,7 +407,7 @@
 
 ; get any kind of SDIF marker or onsets in voices or chord-seqs -> compare with OM-SoX
 
-(defmethod! get-markers ((self sdiffile) &key specdistance transient hand quantize mintime maxtime)
+(defmethod! get-sdif-markers ((self sdiffile) &key specdistance transient hand quantize mintime maxtime)
             ;:initvals '(nil t t t nil nil nil)
             ;:icon '(608)
             (let ((markers nil)
@@ -424,28 +424,28 @@
                    (sort-list markers)
               ))
 
-(defmethod! get-markers ((self chord-seq) &key specdistance transient hand quantize mintime maxtime)
+(defmethod! get-sdif-markers ((self chord-seq) &key specdistance transient hand quantize mintime maxtime)
             (let* ((markers (om* 0.001 (lonset self))))
                    (when quantize
                        (setf markers (quantize markers quantize)))
                    (sort-list markers)
               ))
 
-(defmethod! get-markers ((self voice) &key specdistance transient hand quantize mintime maxtime)
-            (get-markers (ObjfromObjs self (mki 'chord-seq)) :quantize quantize :mintime mintime :maxtime maxtime)
+(defmethod! get-sdif-markers ((self voice) &key specdistance transient hand quantize mintime maxtime)
+            (get-sdif-markers (ObjfromObjs self (mki 'chord-seq)) :quantize quantize :mintime mintime :maxtime maxtime)
               )
 
-(defmethod! get-markers ((self multi-seq) &key specdistance transient hand quantize mintime maxtime)
+(defmethod! get-sdif-markers ((self multi-seq) &key specdistance transient hand quantize mintime maxtime)
             (mapcar (lambda (thechordseqs)
-                      (get-markers thechordseqs)) (chord-seqs self)))
+                      (get-sdif-markers thechordseqs)) (chord-seqs self)))
 
-(defmethod! get-markers ((self poly) &key specdistance transient hand quantize mintime maxtime)
+(defmethod! get-sdif-markers ((self poly) &key specdistance transient hand quantize mintime maxtime)
             (mapcar (lambda (thevoices)
-                      (get-markers thevoices)) (voices self)))
+                      (get-sdif-markers thevoices)) (voices self)))
 
-(defmethod! get-markers ((self list) &key specdistance transient hand quantize mintime maxtime)
+(defmethod! get-sdif-markers ((self list) &key specdistance transient hand quantize mintime maxtime)
             (mapcar (lambda (thelist)
-                      (get-markers thelist 
+                      (get-sdif-markers thelist 
                                    :specdistance specdistance :transient transient :hand hand 
                                    :quantize quantize :mintime mintime :maxtime maxtime)) self))
 
@@ -466,6 +466,13 @@
               (setf thestring (concatenate 'string thestring
                                            (format nil ",~d" item))))
         (setf thestring (concatenate 'string thestring (format nil "]")))
+        thestring)
+
+(defun python-format-nc (input-list)
+  (setf thestring (format nil " ~d" (first input-list)))
+        (loop for item in (cdr input-list) do
+              (setf thestring (concatenate 'string thestring
+                                           (format nil " ~d" item))))       
         thestring)
 
 (defun python-format-s (input-list)
