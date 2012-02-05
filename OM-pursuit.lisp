@@ -53,7 +53,7 @@
           "dispatch-cseq"
           "gabor"
           "fof"
-          "sgn"
+          "soundgrain-decomp"
           "sgntv"
           "sgnct"
           "partials"
@@ -62,9 +62,8 @@
           "utilities"
           "array-2-atoms"
           "make-dictionary"
-          ;"sge"
-          ;"sgl"
           ))
+
 (om::fill-library '(
                     ("Fof" (
                                   (nil nil nil (fof-params fof-decomp get-fof-params get-fof-array get-fof-array-resamp) nil)))

@@ -19,7 +19,8 @@
 ; ============= GETTING SDIF MARKERS ===========================
 ; get any kind of SDIF marker or onsets in voices or chord-seqs
 
-(defmethod! get-markers ((self sdiffile) &key specdistance transient hand quantize mintime maxtime)
+
+(defmethod! sox-get-markers ((self sdiffile) &key specdistance transient hand quantize mintime maxtime)
             :initvals '(nil t t t nil nil nil)
             ::icon '(608)
             (let ((markers nil)
@@ -36,28 +37,28 @@
                    (sort-list markers)
               ))
 
-(defmethod! get-markers ((self chord-seq) &key specdistance transient hand quantize mintime maxtime)
+(defmethod! sox-get-markers ((self chord-seq) &key specdistance transient hand quantize mintime maxtime)
             (let* ((markers (om* 0.001 (lonset self))))
                    (when quantize
                        (setf markers (quantize markers quantize)))
                    (sort-list markers)
               ))
 
-(defmethod! get-markers ((self voice) &key specdistance transient hand quantize mintime maxtime)
-            (get-markers (ObjfromObjs self (mki 'chord-seq)) :quantize quantize :mintime mintime :maxtime maxtime)
+(defmethod! sox-get-markers ((self voice) &key specdistance transient hand quantize mintime maxtime)
+            (sox-get-markers (ObjfromObjs self (mki 'chord-seq)) :quantize quantize :mintime mintime :maxtime maxtime)
               )
 
-(defmethod! get-markers ((self multi-seq) &key specdistance transient hand quantize mintime maxtime)
+(defmethod! sox-get-markers ((self multi-seq) &key specdistance transient hand quantize mintime maxtime)
             (mapcar (lambda (thechordseqs)
-                      (get-markers thechordseqs)) (chord-seqs self)))
+                      (sox-get-markers thechordseqs)) (chord-seqs self)))
 
-(defmethod! get-markers ((self poly) &key specdistance transient hand quantize mintime maxtime)
+(defmethod! sox-get-markers ((self poly) &key specdistance transient hand quantize mintime maxtime)
             (mapcar (lambda (thevoices)
-                      (get-markers thevoices)) (voices self)))
+                      (sox-get-markers thevoices)) (voices self)))
 
-(defmethod! get-markers ((self list) &key specdistance transient hand quantize mintime maxtime)
+(defmethod! sox-get-markers ((self list) &key specdistance transient hand quantize mintime maxtime)
             (mapcar (lambda (thelist)
-                      (get-markers thelist 
+                      (sox-get-markers thelist 
                                    :specdistance specdistance :transient transient :hand hand 
                                    :quantize quantize :mintime mintime :maxtime maxtime)) self))
 

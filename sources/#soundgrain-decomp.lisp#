@@ -44,12 +44,30 @@
                         
 ;(target_path, dictionary_path, cmax, SRR, mod_outpath, res_outpath, sdif_outpath)
 
-(defmethod! sgn-decomp ((snd sound) (maxatoms number) (srr number) (dict-path t) &key outpath)
+#|
+I added the soundgrainDecomposition app to the dropbox.  The arguments go like this:
+
+target_path, model_outpath, residsual_outpath, sdif_outpath, mode, cmax, srr, --dictionaries, --globscalar, --maxsimul, --mindistance
+
+mode can be one of : mp, tvmp, mpc
+
+when mode is tvmp, you need to specify --globscalar
+when mode is mpc, you need to specify --maxsimul and --mindistance
+
+--dictionaries is a space-separated sequence of paths to dictionary files that will be amalgamated prior to the decomposition.
+
+
+target_path, mode, cmax, srr, --dictionaries, --globscalar, --maxsimul, --mindistance
+
+|#
+
+(defmethod! sgn-decomp ((snd sound) (maxatoms number) (srr number) (dictionaries t) (mode t) (outpath t) &key (globscalar 0.1) (maxsimul 2) (mindistance 1000))
             :icon 04
             :numouts 3
-            :initvals '(nil nil nil nil nil)
-            :indoc '("sound" "max num of atoms" "signal-residual-ratio" "dictionary")
+            :initvals '(nil nil nil nil nil nil nil nil nil)
+            :indoc '("sound" "max num of atoms" "signal-residual-ratio" "dictionaries" "mode" "outpath" "globalscalar" "maxsimul" "mindistance")
             :outdoc '("decomposition-sdif-file" "model-audio-file" "residual-audio-file")
+            :menuins '((4 (("matching pursuit" 'mp) ("true velocity matching pursuit" 'tvmp) ("constrained matching pursuit" 'mpc))))
 
             (if (probe-file *sgn-path*)
                 (let* ((inpath (sound-path snd))
@@ -57,25 +75,33 @@
                        (name (or (and outpath (pathname-name outpath)) (format nil "~a_sgn" filename)))
                        (outdir (or outpath (om-make-pathname :directory (append (pathname-directory inpath) (list name)))))                      
                        (sdif-outfile (om-make-pathname :directory (append (pathname-directory outdir))
-                                                       :name (string+ name "_sgn_decomp") :type "sdif"))
+                                                       :name (string+ name "-decomp") :type "sdif"))
                        (audio-outfile (om-make-pathname :directory (append (pathname-directory outdir))
-                                                        :name (string+ name "_sgn-synthesis") :type "wav"))
+                                                        :name (string+ name "-synthesis") :type "wav"))
                        (residual-outfile (om-make-pathname :directory (append (pathname-directory outdir))
-                                                        :name (string+ name "_sgn-residual") :type "wav"))
+                                                        :name (string+ name "-residual") :type "wav"))
                        )
                   (om-create-directory outdir)
                   (setf str 
-                        (format nil "~s ~s ~s ~d ~d ~s ~s ~s" 
+                        (format nil "~s ~s ~s ~s ~s ~s ~d ~d --dictionaries " 
                                 (namestring *sgn-path*)
                                 (namestring inpath)
-                                (namestring dict-path)
-                                maxatoms
-                                srr
                                 (namestring audio-outfile)
                                 (namestring residual-outfile)
                                 (namestring sdif-outfile)
+                                mode
+                                maxatoms
+                                srr
                                 ))
-                  ;(print str)
+                  (loop for path in (list! dictionaries)
+                        do (setf str (concatenate 'string str (format nil " ~s" (namestring path)))))
+                  (when (equal mode 'tvmp) 
+                    (setf str (concatenate 'string str (format nil " --globscalar ~d" globscalar))))
+                  (when (equal mode 'mpc)
+                    (setf str (concatenate 'string str (format nil " --maxsimul ~d --mindistance ~d" maxsimul mindistance))))
+                                           
+                          
+                  (print str)
                   ;(print outdir)
                   ;(print sdif-outfile)
                   ;(print audio-outfile)
@@ -89,6 +115,7 @@
                 nil
                 ))
             )
+
 
 (defmethod! get-sgn-params ((self sdiffile) &optional mintime maxtime)
             :icon 04

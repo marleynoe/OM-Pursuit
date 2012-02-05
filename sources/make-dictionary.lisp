@@ -20,61 +20,10 @@
 
 (in-package :om)
 
-#|
-; old version
-(defmethod! make-dict ((1asosdif sdiffile) (targetsound t) (corpora list) (kbest t) &key (outpath nil) (windowsize 1024) (fftsize 1024) (hopsize 256))
+; it should later be possible to simply provide a list of paths as the corpussdif and a function will be called internally to convert the list into an sdiffile. Alternatively, the user can have pre-processing steps, e.g. using descriptors etc. to create a subset of these 
+; for the future: when having the sound descriptors inside the python function.. and simultaneously having the constraint specifications as an SDIF... I can imagine it opens up many possibilities, for example there's no need of 'labling' atoms for pruning based on for example fundamental frequency as we can get it from each soundfile. then the filtering could take place inside the makeDict function... but it requires having a different collection of atoms for each of the temporal regions.
 
-                        :icon 04
-                        :initvals '(nil nil nil 5 nil) 
-                        :indoc '("string, path to 1ASO SDIF" "path to target sound file" "list of paths to directories containing sound files" 
-                                                             "list of ints, select the k best sound files to be included in dictionary for each time/frequency-region"  
-                                                             "string, path to write python dictionary object" 
-                                                             "STFT window size" "STFT fft size" "STFT hop size" )
-
-                        (if (probe-file *mdc-path*)
-                            (let* ((asopath (namestring (filepathname 1asosdif)))
-                                   (targetpath (if (sound-p targetsound)
-                                                   (namestring (sound-path targetsound))
-                                                   (namestring targetsound)))
-                                   (numrectangles (length (sdifstreams 1asosdif)))
-                                   (outdir (or (and outpath (pathname-directory outpath)) 
-                                               ;(om-make-pathname :directory (pathname-directory targetpath))
-                                               *om-outfiles-folder*))   
-                                   (dictionary-path (om-make-pathname :directory outdir; (append (pathname-directory targetpath))
-                                                                           :name (or (and outpath (pathname-name outpath))
-                                                                                     (string+ (pathname-name targetpath) "_sge-dictionary")) 
-                                                                           :type "dct"))
-                                    
-                                    (str (format nil "~s '~a' '~a' \"~a\" ~d ~d ~d ~s ~s" 
-                                                 (namestring *mdc-path*)
-                                                 asopath 
-                                                 targetpath
-                                                 (python-directories corpora)
-                                                 windowsize
-                                                 fftsize
-                                                 hopsize
-                                                 (python-format (or (and kbest (listp kbest))
-                                                                    (repeat-n kbest numrectangles)))
-                                                 (namestring dictionary-path)
-                                                 ))
-                                    )
-                              (print str)
-                              ;(om-cmd-line str *sys-console*)
-                              (sys:run-shell-command str :wait nil)
-                              dictionary-path   
-                              )
-                          (progn
-                            (om-beep-msg "executable not found... path set in preferences?")
-                            nil))
-                        )
-|#
-
-; NEW FUNCTION
-; target-sound constraint-sdif soundfiles-sdif outpath &key
-
-; I should probably have two methods for the two different applications
-
-(defmethod! make-dict ((targetsound sound) (constraintsdif sdiffile) (corpussdif sdiffile) (outpath t) &key (kbest 5) (windowsize 1024) (fftsize 1024) (hopsize 256))
+(defmethod! make-dictionary ((targetsound sound) (constraintsdif sdiffile) (corpussdif sdiffile) (outpath t) &key (kbest 5) (windowsize 1024) (fftsize 1024) (hopsize 256))
 
                         :icon 04
                         :initvals '(nil nil nil nil 5 1024 1024 256) 
@@ -136,40 +85,3 @@
                             nil))
                         )
 
-#|
-Ok I'll check the server.
-
-The new makeDictionary app is in the DB, the command line calls should go, for markers:
-
-
-./makeDictionary target_path file_sdif constraint_sdif outpath
-
-and for polygons:
-
-./makeDictionary target_path file_sdif constraint_sdif outpath --winsize int --fftsize int --hopsize int --kbest [int int int]
-
-The kbest might cause some confusion, as before it needs to have a sequence of integers that is the same number in length as there are polygons (though useless having more shouldn't break it).  With the new arg parsing there are no brackets and commas though.  SO take an example with three polygons and you want the best 10, the call will be:
-
-./makeDictionary target_path file_sdif constraint_sdif outpath --winsize int --fftsize int --hopsize int --kbest 10 10 10 
- 
-
-A point here that I forgot about is that the kbest actually works per directory (i.e. per corpus in my thinking), so the number given shouldn't exceed the number of files in that corpus.  The indexing comes from the unique directories in the filelist-sdif.  I'm just realizing that this could be a problem if the elements in each NVT are not ordered... bleh.  They seem to be when I do them but I'm not sure on your end.
-|#
-
-#|
-;this method should make an 'sdiffile' object from the sdifpath
-(defmethod! make-dict ((sdifpath pathname) (target t) (corpora list) (kbest list) (outpath pathname) &key (windowsize 512) (fftsize 512) (hopsize 128))
-            (make-dict (filepathname sdifpath) target corpora kbest outpath :windowsize windowsize :fftsize fftsize :hopsize hopsize))
-|#
-
-#|
-(sdif_path, target_path, list_of_corpora, winsize, fftsize, hopsize, list_of_kbest, outpath)
-sdif_path := string, path to 1ASO SDIF,
-target_path := string, path to target sound,
-list_of_corpora := list of strings, paths to directories containing sound files, i.e. ['str1', 'str2' ...]
- winsize := int, STFT window size
-fftsize := int, STFT fftsize, 
-hopsize := STFT hop size, 
-list_of_kbest := list of ints, select the k best sound files to be included in dictionary for each polygon (k must be smaller than the number of files in the corpus, of course)
-outpath := string, path to write python dictionary object
-|#

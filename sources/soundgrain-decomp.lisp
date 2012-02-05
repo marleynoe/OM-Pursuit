@@ -61,13 +61,13 @@ target_path, mode, cmax, srr, --dictionaries, --globscalar, --maxsimul, --mindis
 
 |#
 
-(defmethod! sgn-decomp ((snd sound) (maxatoms number) (srr number) (dictionaries t) (mode t) (outpath t) &key (globscalar 0.1) (maxsimul 2) (mindistance 1000))
+(defmethod! soundgrain-decomp ((snd sound) (maxatoms number) (srr number) (dictionaries t) (mode t) (outpath t) &key (globscalar 0.1) (maxsimul 2) (mindistance 1000))
             :icon 04
             :numouts 3
             :initvals '(nil nil nil nil nil nil nil nil nil)
             :indoc '("sound" "max num of atoms" "signal-residual-ratio" "dictionaries" "mode" "outpath" "globalscalar" "maxsimul" "mindistance")
             :outdoc '("decomposition-sdif-file" "model-audio-file" "residual-audio-file")
-            :menuins '((4 (("matching pursuit" 'mp) ("true velocity matching pursuit" 'tvmp) ("Constrained Matching Pursuit" 'mpc))))
+            :menuins '((4 (("matching pursuit" 'mp) ("true velocity matching pursuit" 'tvmp) ("constrained matching pursuit" 'mpc))))
 
             (if (probe-file *sgn-path*)
                 (let* ((inpath (sound-path snd))

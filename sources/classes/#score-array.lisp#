@@ -117,7 +117,9 @@
                              :lmidic (first scoredata)
                              :lonset (om-round (second scoredata))
                              :ldur (om-clip (om-round (third scoredata)) 1 nil)
-                             :lvel (om-abs (fourth scoredata)))))
+                             :lvel (om-abs (fourth scoredata))
+                             :lchan (om-round (sixth scoredata))))
+         )
     new))
 
 

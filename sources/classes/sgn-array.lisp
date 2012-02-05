@@ -26,6 +26,8 @@
            (:icon 03)
            )
 
+
+
 (defmethod objfromobjs ((self sgn-array) (type score-array))
   (let* ((sgndata (data self))
          (thepaths (loop for path in (filepath self) 
@@ -39,10 +41,11 @@
                             "-"))))
          (new (make-instance 'score-array
                              :numcols (length (first sgndata))
-                             :midicent thepitches
                              :onset (om-round (om* 1000 (first sgndata)))
                              :duration (om-round (om* 1000 (second sgndata)))
-                             :velocity (om-scale (sgn-amplitude (fourth sgndata) (third sgndata)) 1 127) 
+                             :midicent thepitches
+                             :velocity (om-scale (sgn-amplitude (fourth sgndata) (third sgndata)) 1 127)
+                             :channel (om+ (fifth sgndata) 1)
                              ;:velocity (om-scale-exp (sgn-amplitude (fourth sgndata) (third sgndata)) 5 127 .7);om-scale-exp might be better
                              )))
     new))

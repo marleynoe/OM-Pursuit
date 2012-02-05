@@ -406,15 +406,17 @@
 
 
 ; get any kind of SDIF marker or onsets in voices or chord-seqs -> compare with OM-SoX
+; i should distinguish between specdistance-positive and specdistance-negative  if there's a distinction in the SDIF
+; Also, it should already look for the specifc markers once they are out.. it shouldn't need a 't
 
-(defmethod! get-sdif-markers ((self sdiffile) &key specdistance transient hand quantize mintime maxtime)
-            ;:initvals '(nil t t t nil nil nil)
-            ;:icon '(608)
+(defmethod! get-sdif-markers ((self sdiffile) &key specdistance transient manual quantize mintime maxtime)
+            :initvals '(t t t t nil nil nil) ; all markers unquantized over the entire range
+            :icon '(608)
             (let ((markers nil)
                   (frametimes (getsdiftimes self 0 "1MRK" nil mintime maxtime)))
                    (when specdistance (setf markers (x-append markers (getsdiftimes self 0 "1MRK" "XASD" mintime maxtime))))
                    (when transient (setf markers (x-append markers (getsdiftimes self 0 "1MRK" "1BEG" mintime maxtime))))
-                   (when hand (setf markers (x-append markers 
+                   (when manual (setf markers (x-append markers 
                                                       (x-diff frametimes (x-append 
                                                                           (getsdiftimes self 0 "1MRK" "XASD" mintime maxtime) 
                                                                           (getsdiftimes self 0 "1MRK" "1BEG" mintime maxtime) 
@@ -424,29 +426,29 @@
                    (sort-list markers)
               ))
 
-(defmethod! get-sdif-markers ((self chord-seq) &key specdistance transient hand quantize mintime maxtime)
+(defmethod! get-sdif-markers ((self chord-seq) &key specdistance transient manual quantize mintime maxtime)
             (let* ((markers (om* 0.001 (lonset self))))
                    (when quantize
                        (setf markers (quantize markers quantize)))
                    (sort-list markers)
               ))
 
-(defmethod! get-sdif-markers ((self voice) &key specdistance transient hand quantize mintime maxtime)
+(defmethod! get-sdif-markers ((self voice) &key specdistance transient manual quantize mintime maxtime)
             (get-sdif-markers (ObjfromObjs self (mki 'chord-seq)) :quantize quantize :mintime mintime :maxtime maxtime)
               )
 
-(defmethod! get-sdif-markers ((self multi-seq) &key specdistance transient hand quantize mintime maxtime)
+(defmethod! get-sdif-markers ((self multi-seq) &key specdistance transient manual quantize mintime maxtime)
             (mapcar (lambda (thechordseqs)
                       (get-sdif-markers thechordseqs)) (chord-seqs self)))
 
-(defmethod! get-sdif-markers ((self poly) &key specdistance transient hand quantize mintime maxtime)
+(defmethod! get-sdif-markers ((self poly) &key specdistance transient manual quantize mintime maxtime)
             (mapcar (lambda (thevoices)
                       (get-sdif-markers thevoices)) (voices self)))
 
-(defmethod! get-sdif-markers ((self list) &key specdistance transient hand quantize mintime maxtime)
+(defmethod! get-sdif-markers ((self list) &key specdistance transient manual quantize mintime maxtime)
             (mapcar (lambda (thelist)
                       (get-sdif-markers thelist 
-                                   :specdistance specdistance :transient transient :hand hand 
+                                   :specdistance specdistance :transient transient :manual manual 
                                    :quantize quantize :mintime mintime :maxtime maxtime)) self))
 
 
