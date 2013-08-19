@@ -117,7 +117,8 @@
                              :lmidic (first scoredata)
                              :lonset (om-round (second scoredata))
                              :ldur (om-clip (om-round (third scoredata)) 1 nil)
-                             :lvel (om-abs (fourth scoredata)))))
+                             :lvel (om-abs (fourth scoredata))
+                             :lchan (sixth scoredata))))
     new))
 
 
@@ -125,7 +126,9 @@
 (defmethod objfromobjs ((self chord-seq) (type score-array))
   (let* ((new (make-instance 'score-array 
                              :numcols (length (lmidic self))
+
                              :midicent (flat (lmidic self))
+
                              :onset (lonset self)
                              :duration (flat (ldur self))
                              :velocity (flat (lvel self))

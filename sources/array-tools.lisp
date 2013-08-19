@@ -345,6 +345,23 @@
                     ))
             )
 
+(defmethod! array-filter ((self list) (slotname string) value)
+            :icon 04
+            :initvals '(nil nil nil)
+            (let* ((thearrayvals (multiple-value-list (array-vals self)))
+                   (thearray (first thearrayvals))
+                   (thecomplist (second thearrayvals))
+                   (thevallist (array-field thearray slotname))
+                   )
+              (loop for val in thevallist
+                    for comp in thecomplist
+                    do
+                    (if (equal val value)
+                        (remove-comp comp)
+                      comp)
+                    ))
+            )
+
 ; %%%% slot-methods %%%%%%%%
 
 (defmethod! slot-paths ((thedata list) (discard-levels number) (new-dir t) (keep-levels number))

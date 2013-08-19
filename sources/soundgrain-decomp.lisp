@@ -117,6 +117,61 @@ target_path, mode, cmax, srr, --dictionaries, --globscalar, --maxsimul, --mindis
             )
 
 
+(defmethod! sgn-decomp ((snd sound) (maxatoms number) (srr number) (dictionaries t) (mode t) (outpath t) &key (globscalar 0.1) (maxsimul 2) (mindistance 1000))
+            :icon 04
+            :numouts 3
+            :initvals '(nil nil nil nil nil nil nil nil nil)
+            :indoc '("sound" "max num of atoms" "signal-residual-ratio" "dictionaries" "mode" "outpath" "globalscalar" "maxsimul" "mindistance")
+            :outdoc '("decomposition-sdif-file" "model-audio-file" "residual-audio-file")
+            :menuins '((4 (("matching pursuit" 'mp) ("true velocity matching pursuit" 'tvmp) ("constrained matching pursuit" 'mpc))))
+
+            (if (probe-file *sgn-path*)
+                (let* ((inpath (sound-path snd))
+                       (filename (pathname-name inpath))
+                       (name (or (and outpath (pathname-name outpath)) (format nil "~a_sgn" filename)))
+                       (outdir (or outpath (om-make-pathname :directory (append (pathname-directory inpath) (list name)))))                      
+                       (sdif-outfile (om-make-pathname :directory (append (pathname-directory outdir))
+                                                       :name (string+ name "-decomp") :type "sdif"))
+                       (audio-outfile (om-make-pathname :directory (append (pathname-directory outdir))
+                                                        :name (string+ name "-synthesis") :type "wav"))
+                       (residual-outfile (om-make-pathname :directory (append (pathname-directory outdir))
+                                                        :name (string+ name "-residual") :type "wav"))
+                       )
+                  (om-create-directory outdir)
+                  (setf str 
+                        (format nil "~s ~s ~s ~s ~s ~s ~d ~d --dictionaries " 
+                                (namestring *sgn-path*)
+                                (namestring inpath)
+                                (namestring audio-outfile)
+                                (namestring residual-outfile)
+                                (namestring sdif-outfile)
+                                mode
+                                maxatoms
+                                srr
+                                ))
+                  (loop for path in (list! dictionaries)
+                        do (setf str (concatenate 'string str (format nil " ~s" (namestring path)))))
+                  (when (equal mode 'tvmp) 
+                    (setf str (concatenate 'string str (format nil " --globscalar ~d" globscalar))))
+                  (when (equal mode 'mpc)
+                    (setf str (concatenate 'string str (format nil " --maxsimul ~d --mindistance ~d" maxsimul mindistance))))
+                                           
+                          
+                  (print str)
+                  ;(print outdir)
+                  ;(print sdif-outfile)
+                  ;(print audio-outfile)
+                  ;(print residual-outfile)
+                  ;(om-cmd-line str *sys-console*)
+                  (sys:run-shell-command str :wait nil)
+                  (values (probe-file sdif-outfile) (probe-file audio-outfile) (probe-file residual-outfile))           
+                  )
+              (progn 
+                (print "sgnDecomp not found... set in preferences?")
+                nil
+                ))
+            )
+
 (defmethod! get-sgn-params ((self sdiffile) &optional mintime maxtime)
             :icon 04
             :numouts 8
@@ -136,7 +191,27 @@ target_path, mode, cmax, srr, --dictionaries, --globscalar, --maxsimul, --mindis
                (get-sgn-paths self (om-round (third translist)) (om-round (fourth translist))) ;filepath (string)
               )))
 
+#|
+(defmethod! get-sgn-params ((self sdiffile) &optional mintime maxtime)
+            :icon 04
+            :numouts 8
+            :outdoc '("numatoms" "onset" "duration" "magnitude" "norm" "corpus-index" "file-index" "filepath")
+            (let* ((sdiflist (flat (getsdifdata self 0 "XADS" "XSLM" nil nil nil mintime maxtime) 1))
+                   (translist (mat-trans sdiflist))
+                   (samplerate 16000)
+                   (reci-fs (/ 1 samplerate)))
+              (values 
+               (length sdiflist)                    ;numatoms             
+               (om* reci-fs (first translist))     ;onset (sec)
+               (om* reci-fs (second translist))      ;duration (sec)
+               (sixth translist)                    ;magnitude (lin)
+               (fifth translist)                    ;norm (lin)
+               (om-round (third translist))        ;corpus-index (int)
+               (om-round (fourth translist))         ;file-index (int)
+               (get-sgn-paths self (om-round (third translist)) (om-round (fourth translist))) ;filepath (string)
+              )))
 
+|#
 (defmethod! get-sgn-array ((self sdiffile) &optional mintime maxtime)
             :icon 04
             :numouts 1
@@ -219,6 +294,14 @@ target_path, mode, cmax, srr, --dictionaries, --globscalar, --maxsimul, --mindis
 
 (defun sgn-amplitude (norm magnitude)
   (om* (om/ 1 norm) (om-abs magnitude)))
+
+#|
+;to compress a bit
+(defun sgn-amplitude (norm magnitude)
+  (let* ((amps (om* (om/ 1 norm) (om-abs magnitude)))
+         (rescaled-amps (om-scale-exp amps (list-min amps) (list-max amps) 0.7)))
+    rescaled-amps))
+|#
 
 (defun stringposition (thestring thelist)
   (nth 0 (remove nil 

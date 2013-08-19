@@ -59,15 +59,6 @@
   (sqrt (/ (om-sum2 scalars) (length scalars)))
   )
               
-(defmethod! centroid ((freqs list) (amps list))
-           (/
-            (loop for x in freqs 
-                  for y in amps
-                  finally
-                  sum (* x y)
-                  )
-            (+ (om-sum amps) 0.00000001) ;avoid division by zero
-           ))
 
 (defmethod! om-sum ((self list))
                   (loop for item in self
@@ -92,9 +83,76 @@
      (t val))))
 
 (defmethod! om-clip ((arg1 list) &optional min max)
-            (let ((repetitions (length arg1))
-                  (minval (or min (list-min arg1)))
+            (let ((minval (or min (list-min arg1)))
                   (maxval (or max (list-max arg1))))            
                   (mapcar #'(lambda (input)
                                (clip input minval maxval)) arg1))
               )
+
+;##### DESCRIPTORS ########
+
+(defmethod! sox-centroid ((freqs list) (amps list))
+           (/
+            (loop for x in freqs 
+                  for y in amps
+                  finally
+                  sum (* x y)
+                  )
+            (+ (om-sum amps) 0.00000001) ;avoid division by zero
+           ))
+
+
+(defmethod! sox-spectral-spread ((freqs list) (amps list) (centroid number))
+           (/
+            (loop for x in freqs 
+                  for y in amps
+                  finally
+                  sum (* (* (- x centroid) (- x centroid)) y)
+                  )
+            (+ (om-sum amps) 0.00000001) ;avoid division by zero
+           ))
+
+(defmethod! sox-spectral-decrease ((freqs list) (amps list))
+           (let ((a1 (car amps)))
+            (/
+            (loop for f in freqs 
+                  for a in amps
+                  finally
+                  sum (- a a1)
+                  )
+            (loop for a in amps
+                  for b in (cdr amps)
+                  finally
+                  sum (* a b)
+                  )
+           )))
+
+(defmethod! sox-energy ((freqs list) (amps list))
+           (/
+            (loop for x in amps
+                  finally
+                  sum (* x x)
+                  )
+            (+ (om-sum amps) 0.00000001) ;avoid division by zero
+           ))
+
+(defmethod! sox-spectral-descriptor ((descriptor string) (freqs list) (amps list))
+           ; :menuins '(())
+            (cond ((equal descriptor "SpectralCentroid") (sox-centroid freqs amps))
+                  ((equal descriptor "SpectralSpread") (sox-spectral-spread freqs amps (sox-centroid freqs amps)))
+                  ((equal descriptor "SpectralDecrease") (sox-spectral-decrease freqs amps))
+                  ))
+
+; this function can also be useful for the constraint-building function (menu for the choice of the descriptor)
+(defun sox-descriptor-to-type (descriptor)
+  (cond ((equal descriptor "SpectralCentroid") "1SCN")
+        ((equal descriptor "SpectralSpread") "1SSP")
+        ((equal descriptor "SpectralDecrease") "1SPD")
+        )
+  )
+
+
+
+
+(defvar *sox-descriptors* '("SpectralCentroid" "SpectralSpread" "SpectralDecrease"))
+

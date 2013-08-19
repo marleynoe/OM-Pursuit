@@ -313,7 +313,7 @@
             output)
 
 
-;(defmethod! color ((midicent list))
+;(defmethod! color ((midicent list))"numatoms" "onset" "duration" "magnitude" "norm" "frequency" "phase" "bandwidth" "molecule"
 ;(setf (bpfcolor XXXX) (om-make-color r g b))
 
 
@@ -573,6 +573,10 @@ Ex. (om-scale '(0 2 5) 0 100)  => (0 40 100)
   (om-scale (om^ (om-scale self 0. 1. minin maxin) exponent) minout maxout 0. 1.)
   )
 
+(defmethod! om-scale-exp ((self number) (minout number) (maxout number) (exponent number) &optional (minin 0) (maxin 0))
+  (om-scale (om^ (om-scale self 0. 1. minin maxin) exponent) minout maxout 0. 1.)
+  )
+
 #|
 ;why doesnt this work?
 (defun create-window (nothing)
@@ -788,3 +792,10 @@ If <samplerate> is NIL, the OM default sample rate is used to calculate the samp
            (om-beep-msg "BPF decimals must be a positive integer!")
            (setf (slot-value self 'decimals) 0))
            )))
+
+;==============
+
+; Utility functions
+
+(defun find-string-in-list (string list)
+(position string list :test #'string-equal))

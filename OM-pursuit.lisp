@@ -85,10 +85,11 @@
          
 ;(sub-pack-name subpack-lists class-list function-list class-alias-list)
 
-(setq *my-bg-pict* (om-load-and-store-picture "dibox" 'omato))
+;(setq *my-bg-pict* (om-load-and-store-picture "dibox" 'omato))
 
 
 (print "
 OM-Pursuit 0.1alpha
-Marlon Schumacher CIRMMT/McGill University
+Marlon Schumacher 2013, CIRMMT/McGill University
+pydbm by Graham Boyes
 ")
