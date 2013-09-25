@@ -63,8 +63,8 @@
 
 (defmethod! sgn-constraint-maker ((constraint symbol) (descriptor string) (order integer) (value t))
             ; :icon 
-            :initvals '(nil nil nil nil)
-            :menuins '( (0 ( ("<" '<) ("<=" '<=) ("=" '=) ("!=" '!=) (">=" '>=) (">" '>)))
+            :initvals '(nil "0" 0 nil)
+            :menuins '( (0 ( ("<" '<) ("<=" '<=) (">" '>) (">=" '>=)  ("==" '==) ("!=" '!=)  ("W" 'W) ("B" 'B) ))
                         (1 ( ("SpectralCentroid" "1SCN") ("SpectralKurtosis" "1SLK") ("SpectralRolloff" "1SLR") ("SpectralDecrease" "1SPD") )))
             :indoc '("constraint as a symbol" "which descriptor to apply the constraint to" "an integer specifying the order" "the value for the constraint (static = number, dynamic = bpf)")
             :doc "Defines and returns an instance of sgn-constraint"
@@ -75,17 +75,34 @@
                            :value value)
             )
 
+(defmethod! sgn-constraint-maker ((constraint integer) (descriptor string) (order integer) (value t))
+            (make-instance 'sgn-constraint
+                           :constraint constraint
+                           :descriptor descriptor
+                           :order order
+                           :value value)
+            )
 
 ; this function allows combining different sub-constraints (constraint-blocks) into larger scale tree-structures
 (defmethod! ctr-combine ((operator symbol) (constraint1 t) (constraint2 t))
+            :initvals '(nil nil nil)
+            :menuins '( (0 (("AND" 'AND) ( "NAND" 'NAND ) ( "OR" 'OR ) ( "NOR" 'NOR ) ( "XOR" 'XOR ) ( "XNOR" 'XNOR ) ( "W" 'W ) ( "B" 'B )))) ; should be AND NAND OR NOR XOR XNOR
+            ;need a check here: 
+            ;(print (constraint constraint1))
+            ;(print (constraint constraint2)) ; need to be able to check for nested constraints, possibly with a cond statement
+            ;(if ((or (consp (constraint constraint1)) (consp (constraint constraint1)
+            #|
+            (cond  ((or (equal (constraint constraint1) 'w) (equal (constraint constraint2) 'w)) (list constraint1 'w constraint2))
+                   ((or (equal (constraint constraint1) 'b) (equal (constraint constraint2) 'b)) (list constraint1 'b constraint2))
+                   (t (list constraint1 operator constraint2)))
+            |#
             (list constraint1 operator constraint2)
             )
 
 ; this function takes a list of sgn-constraints and operators and writes an SDIF files
-(defmethod! make-constraint-sdif ((constraint-list list))
-            (print constraint-list)
-            (let* (;types...
-                   (object-list (flat (list-filter 'sgn-constraint-p constraint-list 'pass)))
+(defmethod! make-constraint-sdif ((constraint-list t))
+            ;(print constraint-list)
+            (let* ((object-list (flat (list-filter 'sgn-constraint-p (list! constraint-list) 'pass)))
                    (side-effect (loop for item in object-list 
                                       for i from 1 to (length object-list) do
                                       (setf (streamid item) i)
