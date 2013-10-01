@@ -1,0 +1,7 @@
+import OMPursuit
+import numpy as np
+import matplotlib.pyplot as plt
+
+path = 'testSDIF5.sdif'
+
+D = OMPursuit.OMPursuitDictionary(path, 2)

@@ -1,0 +1,89 @@
+import numpy as np
+import scipy.signal as sig
+import scikits.audiolab as audiolab
+import pysdif
+import os
+
+'''
+class OMPursuitConstraint:
+    def __init__(self):
+'''        
+
+class OMPursuitDictionary:
+    '''Reference to sound files and related descriptors'''    
+
+    def __init__(self, sdifPath, downsampleFactor):
+
+        #obtain the sdif file object
+        sdifFile = pysdif.SdifFile(sdifPath, 'r')
+        
+        #obtain the references to the streams in sdifFile
+        streamRefs = sdifFile.get_stream_IDs()
+
+        #the number of sound references  
+        self.numRefs = len(streamRefs) 
+        
+        #assign a lookup table to the signal vectors
+        self.signalLookup = {}
+        
+        for i, sg in enumerate(streamRefs):
+            self.signalLookup[i+1] = {}
+            sformats = {'.aif' : audiolab.aiffread, '.aiff' : audiolab.aiffread, '.wav' : audiolab.wavread}
+
+            readFunc = sformats[(os.path.splitext(sg.source)[1]).lower()]
+            x, fs, p = readFunc(sg.source)
+            if len(np.shape(x)) > 1:
+                x = x[:, 0]
+            x_ = sig.resample(x, len(x)/downsampleFactor)
+            self.signalLookup[i+1]['signal'] = x_
+
+        #build the descriptor object (holds the raw data, might not need this at a later stage...)
+        self.descriptorLookup = {}
+        for i in range(1, self.numRefs+1):
+            self.descriptorLookup[i] = {}
+            for ft in sdifFile.get_frame_types():
+                self.descriptorLookup[i][ft.signature]  = {}
+                for component in ft.components:
+                    self.descriptorLookup[i][ft.signature][component.signature] = {}
+                    self.descriptorLookup[i][ft.signature][component.signature]['name'] = component.name
+                    self.descriptorLookup[i][ft.signature][component.signature]['num'] = component.num
+                    self.descriptorLookup[i][ft.signature][component.signature]['values'] = []
+                    self.descriptorLookup[i][ft.signature][component.signature]['time'] = []
+
+        #read the descriptor values from the sdif and fill the lookup table
+        for frame in sdifFile:
+            for matrix in frame:
+                self.descriptorLookup[frame.id][frame.signature][matrix.signature]['values'].append((matrix.get_data()[0]))
+                self.descriptorLookup[frame.id][frame.signature][matrix.signature]['time'].append(frame.time) 
+
+        #get the dimension in order to build the ndarrays
+        maxy = [0, 0]
+        maxx = [0, 0]
+        
+        
+        for i, matsig in enumerate(['1DSC', '1WMN']):
+            #in practice just searhc til you find one entry
+            for k in range(1, self.numRefs+1):
+                nx = len(self.descriptorLookup[k][matsig].keys()) + 1
+                if nx > maxx[i]:
+                    maxx[i] = nx   
+                for key in self.descriptorLookup[k][matsig].keys():
+                    n = len(self.descriptorLookup[k][matsig][key]['time'])
+                    if n > maxy[i]:
+                        maxy[i] = n
+
+        self.averageDescriptors = {}
+        dtype = [(d, float) for d in self.descriptorLookup[1]['1WMN'].keys()]
+        dtype.append(('time', float))
+        for i in range(1, self.numRefs+1):
+            self.averageDescriptors[i] = np.zeros(maxy[1], dtype=dtype)
+            for key in [d[0] for d in dtype]:
+                for j in range(maxy[1]):
+                    #if key == 'time':
+                    #    self.averageDescriptors[i][key][j] =  self.descriptorLookup[i]['1WMN'][key][j]
+                    #else:
+                    #    self.averageDescriptors[i][key][j] =  self.descriptorLookup[i]['1WMN'][key]['values'][j]
+                        
+
+        
+    
