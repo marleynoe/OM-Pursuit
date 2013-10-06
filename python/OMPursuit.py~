@@ -1,16 +1,42 @@
 import numpy as np
 import scipy.signal as sig
+import scipy.linalg as linalg
 import scikits.audiolab as audiolab
 import pysdif
 import os
 
+
+
 '''
 class OMPursuitConstraint:
     def __init__(self):
+
+class OMPursuitCompoundConstraint:
+    def __init__(self):
 '''        
+class OMPursuitSoundgrain:
+    def __init__(self, soundfilePath, downsampleFactor):
+
+        sformats = {'.aif' : audiolab.aiffread, '.aiff' : audiolab.aiffread, '.wav' : audiolab.wavread}
+        readFunc = sformats[(os.path.splitext(soundfilePath)[1]).lower()]
+        x, fs, p = readFunc(soundfilePath)
+
+        if len(np.shape(x)) > 1:
+            x = x[:, 0]
+
+        self.norm = linalg.norm(x)#the original norm
+        self.samplerate = fs            
+
+        if downsampleFactor > 1:
+            x = sig.resample(x, len(x)/downsampleFactor)
+            self.samplerate = fs / downsampleFactor
+        elif downsampleFactor < 1:
+            raise Exception("Upsampling not permitted")
+
+        self.signal = x / linalg.norm(x) #the normalization step occurs once'''
 
 class OMPursuitDictionary:
-    '''Reference to sound files and related descriptors'''    
+    '''Parse an SDIF file and act as a container for OMPursuitSoundgrain instances'''    
 
     def __init__(self, sdifPath, downsampleFactor):
 
@@ -23,20 +49,11 @@ class OMPursuitDictionary:
         #the number of sound references  
         self.numRefs = len(streamRefs) 
         
-        #assign a lookup table to the signal vectors
-        self.signalLookup = {}
-        
+        #assign a lookup for soundgrains
+        self.soundgrains = {}
         for i, sg in enumerate(streamRefs):
-            self.signalLookup[i+1] = {}
-            sformats = {'.aif' : audiolab.aiffread, '.aiff' : audiolab.aiffread, '.wav' : audiolab.wavread}
-
-            readFunc = sformats[(os.path.splitext(sg.source)[1]).lower()]
-            x, fs, p = readFunc(sg.source)
-            if len(np.shape(x)) > 1:
-                x = x[:, 0]
-            x_ = sig.resample(x, len(x)/downsampleFactor)
-            self.signalLookup[i+1]['signal'] = x_
-
+            self.soundgrains[i+1] = OMPursuitSoundgrain(sg.source, downsampleFactor)
+            
         #build the descriptor object (holds the raw data, might not need this at a later stage...)
         self.descriptorLookup = {}
         for i in range(1, self.numRefs+1):
@@ -58,32 +75,35 @@ class OMPursuitDictionary:
 
         #get the dimension in order to build the ndarrays
         maxy = [0, 0]
-        maxx = [0, 0]
-        
         
         for i, matsig in enumerate(['1DSC', '1WMN']):
-            #in practice just searhc til you find one entry
-            for k in range(1, self.numRefs+1):
-                nx = len(self.descriptorLookup[k][matsig].keys()) + 1
-                if nx > maxx[i]:
-                    maxx[i] = nx   
+            for k in range(1, self.numRefs+1):  
                 for key in self.descriptorLookup[k][matsig].keys():
                     n = len(self.descriptorLookup[k][matsig][key]['time'])
                     if n > maxy[i]:
                         maxy[i] = n
 
-        self.averageDescriptors = {}
         dtype = [(d, float) for d in self.descriptorLookup[1]['1WMN'].keys()]
         dtype.append(('time', float))
-        for i in range(1, self.numRefs+1):
-            self.averageDescriptors[i] = np.zeros(maxy[1], dtype=dtype)
-            for key in [d[0] for d in dtype]:
-                for j in range(maxy[1]):
-                    #if key == 'time':
-                    #    self.averageDescriptors[i][key][j] =  self.descriptorLookup[i]['1WMN'][key][j]
-                    #else:
-                    #    self.averageDescriptors[i][key][j] =  self.descriptorLookup[i]['1WMN'][key]['values'][j]
-                        
 
-        
-    
+        for i in range(1, self.numRefs+1):
+            for q, ys in enumerate(maxy):
+                if q == 0:
+                    self.soundgrains[i].shortTimeDescriptors = np.zeros(ys, dtype=dtype)
+                    dummyArray = self.soundgrains[i].shortTimeDescriptors 
+                else:
+                    self.soundgrains[i].averagedDescriptors = np.zeros(ys, dtype=dtype)
+                    dummyArray = self.soundgrains[i].averagedDescriptors
+ 
+                for j in range(maxy[1]):
+                    checkTime = True
+                    for key in [d[0] for d in dtype]:
+                        if key != 'time':
+                            if len(self.descriptorLookup[i]['1WMN'][key]['values']) > j:
+                                dummyArray[j][key] =  self.descriptorLookup[i]['1WMN'][key]['values'][j]
+                                if checkTime:   
+                                    checkTime = False
+                                    dummyArray[j]['time'] = self.descriptorLookup[i]['1WMN'][key]['time'][j]
+
+    def len(self):
+        return len(self.soundgrains.keys())

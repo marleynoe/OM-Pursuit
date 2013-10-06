@@ -2,6 +2,9 @@ import OMPursuit
 import numpy as np
 import matplotlib.pyplot as plt
 
-path = 'testSDIF5.sdif'
+path = './test_sdifs/testSDIF5.sdif'
+constraint_path = './test_sdifs/constraint-SDIFs/test-constraints(onlyconditionals).pct.sdif'
 
-D = OMPursuit.OMPursuitDictionary(path, 2)
+D = OMPursuit.OMPursuitDictionary(path, 1)
+C = OMPursuit.OMPursuitCompoundConstraint(constraint_path)
+
