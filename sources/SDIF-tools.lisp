@@ -1,25 +1,23 @@
 (in-package :om)
 
-*new-sdiftypes*
 
+
+(defun get-specific-streams (sdiffile) ;(sdiffile list-of-streamIDs) -> for now static
+  (let ((thestreams (sdifstreams sdiffile)))
+    (table-filter #'(lambda (mystream) 
+                      (if  (or (equal mystream 1) (equal mystream 2)) t nil))
+                  thestreams
+                  0
+                  'pass)
+    ))
+            
+(defvar *ircamdescriptors-sdif-matrix-types*
+'((itin {temporalincreaseinfo}) (1eev {energyenvelope}) (1hcn {harmonicspectralcentroid}) (1hen {harmonicenergy}) (isom {weightedstddeviationmedianfilterinfo}) (1hoe {harmonicoddtoevenratio}) (1mfc {mfcc}) (1ldn {loudness}) (iwmn {weightedmeaninfo}) (1inh {inharmonicity}) (iwsd {weightedstddeviationinfo}) (1hsd {harmonicspectraldeviation}) (1hku {harmonicspectralkurtosis}) (1hva {harmonicspectralvariation}) (1pde {perceptualspectraldecrease}) (1nen {noiseenergy}) (1hsk {harmonicspectralskewness}) (1hsl {harmonicspectralslope}) (1hro {harmonicspectralrolloff}) (1pcn {perceptualspectralcentroid}) (1hsp {harmonicspectralspread}) (1sde {spectraldecrease}) (1htr {harmonictristimulus}) (1sha {sharpness}) (1scm {spectralcrest}) (1scn {spectralcentroid}) (1poe {perceptualoddtoevenratio}) (1sfm {spectralflatness}) (iefd {effectivedurationinfo}) (1psd {perceptualspectraldeviation}) (1pku {perceptualspectralkurtosis}) (1nsn {noisiness}) (1pva {perceptualspectralvariation}) (1psk {perceptualspectralskewness}) (1psl {perceptualspectralslope}) (1pro {perceptualspectralrolloff}) (1psp {perceptualspectralspread}) (1sku {spectralkurtosis}) (1sva {spectralvariation}) (1ptr {perceptualtristimulus}) (1rsl {relativespecificloudness}) (idsc {shorttermfeatureinfo}) (1ssk {spectralskewness}) (1spr {spread}) (1ssl {spectralslope}) (imda {amplitudemodulationampinfo}) (1sro {spectralrolloff}) (1zcr {signalzerocrossingrate}) (1ssp {spectralspread}) (imdf {amplitudemodulationfreqinfo}) (imed {medianfilterinfo}) (imam {weightedmeandeltadeltamedianfilterinfo}) (imao {weightedmeandeltadeltainfo}) (ilat {logattacktimeinfo}) (imdm {weightedmeandeltamedianfilterinfo}) (imdo {weightedmeandeltainfo}) (ioam {deltadeltamedianfilterinfo}) (ioao {deltadeltainfo}) (iodm {deltamedianfilterinfo}) (iodo {deltainfo}) (imod {amplitudemodulationinfo}) (isam {weightedstddeviationdeltadeltamedianfilterinfo}) (isao {weightedstddeviationdeltadeltainfo}) (itde {temporaldecreaseinfo}) (imom {weightedmeanmedianfilterinfo}) (isdm {weightedstddeviationdeltamedianfilterinfo}) (isdo {weightedstddeviationdeltainfo}) (itcn {temporalcentroidinfo}) (1hde {harmonicspectraldecrease}) (1chr {chroma}))
+)
+          
 (defvar *new-sdiftypes* 
 "
 SDIF
-
-1NVT
-{
-  GenerationDate	Mon_Dec_10_18_09_37_2007;
-  GenerationDir	/u/anasynth/burred/sdif/cvs_local/SDIF/types;
-  GenerationHost	peneru_ircam_fr;
-  GenerationUser	burred;
-  Generator	xmltostyp_pl;
-  GeneratorFiledate	Wed_Apr_18_18_24_52_2001;
-  GeneratorRevision	$Id__xmltostyp_pl_v_1_5_2001/04/18_16_24_52_schwarz_Exp_$_;
-  SdifTypesVersion	Ircam_1_7;
-  SourceFile	sdiftypes_xml;
-  SourceFileRevision	___$Id__sdiftypes_xml_v_1_16_2002/09/20_14_31_14_schwarz_Exp_$_;
-  SourceFiledate	Mon_Dec_10_18_09_03_2007;
-}
 
 1TYP
 {

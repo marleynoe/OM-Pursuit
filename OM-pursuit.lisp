@@ -58,6 +58,8 @@
           "sgnct"
           "partials"
           "score-tools"
+          "SDIF-tools"
+          "ircamdescriptors"
           "statistics"
           "utilities"
           "array-2-atoms"

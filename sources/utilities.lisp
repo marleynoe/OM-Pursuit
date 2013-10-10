@@ -20,6 +20,24 @@
 
 (in-package :om)
 
+;%%%%%%%%%%%%%% STRING FUNCTIONS %%%%%%%%%%%%%%%%%
+
+(defmethod! replace-string ((string string) (char string))
+            :numouts 2
+            (let ((index (search char string)))
+              (if index 
+                  (progn
+                    (setf nustring (format nil "~a,~a" (subseq string 0 index) (subseq string (+ index 3))))
+                    (replace-string nustring char))
+                nustring
+                )
+              ))
+
+;=== Converts an item into a string
+(defun itemtostring (anything)
+  (format nil "~a" anything)
+    )
+
 ;%%%%%%%%%%%%%% PLOTTING FUNCTIONS %%%%%%%%%%%%%%%
 
 (defun add-pict-to-maquette (pictpath maquette t1 t2 y1 y2)
@@ -32,6 +50,10 @@
                              :draw-params (list 'c t1 y1 t2 y2))))
    (setf (pictu maquette) pict)
    t))
+
+(defun makestring (anything)
+  (format nil "~a" anything)
+    )
 
 (defmethod! clearmaq ((self OMMaquette))
    :icon '(327)

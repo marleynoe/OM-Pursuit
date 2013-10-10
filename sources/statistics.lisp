@@ -120,11 +120,12 @@
                   finally
                   sum (- a a1)
                   )
-            (loop for a in amps
+            (om+ (loop for a in amps
                   for b in (cdr amps)
                   finally
                   sum (* a b)
                   )
+                 0.00000001) ; avoid division by zero
            )))
 
 (defmethod! sox-energy ((freqs list) (amps list))
@@ -150,8 +151,7 @@
         ((equal descriptor "SpectralDecrease") "1SPD")
         )
   )
-
-
+; should be simply a menu with the 'long word' that gets converted into the 4ascii-characters
 
 
 (defvar *sox-descriptors* '("SpectralCentroid" "SpectralSpread" "SpectralDecrease"))
