@@ -93,7 +93,6 @@ class OMPursuitConstraint:
             return set(np.argsort(np.abs(q - value))[0:self.kn] + 1)
 
 
-
 class OMPursuitCompoundConstraint:
     '''Parse a constraint definition sdif and serve as a container for OMPusuitConstraint instances'''
 
@@ -133,21 +132,27 @@ class OMPursuitCompoundConstraint:
         for i in range(1, self.numConstraints+1):
             self.constraints[i].cValues = np.array(constraintValues[i-1])
             self.constraints[i].cTimes = np.array(constraintTimes[i-1])
-        
-
-        for c in self.constraints.values():
-            self.fullConstraintString = re.sub(c.cString, str(c.index), self.fullConstraintString)
-        print(self.fullConstraintString)
-
 
     def cFullConstraintFunction(self, D, time):
         #simplest case, only one constraint
-        if self.fullConstraintString == '(1)':
-            return self.constraints[1].cFunction(D, time)    
+        tempString = self.fullConstraintString
 
-         
+        #first check and replace the constraint functions
+        for c in self.constraints.values():
+            tempString = re.sub(c.cString, str(c.cFunction(D, time)), tempString)
+
+        #then check and replace the combination operators
+        
     
+        #finally return the evaluated string, yields a set of indices
+        return(eval(tempString))
 
+    def andOMP(self, indices1, indices2):
+        return operator.and_(indices1, indices2)
+
+    def orOMP(self, indices1, indices2):
+        return operator.or_(indices1, indices2)
+    
 class OMPursuitSoundgrain:
     '''Data representation for a single sound file within an OMPursuitDictionary'''
 
@@ -155,7 +160,7 @@ class OMPursuitSoundgrain:
 
         sformats = {'.aif' : audiolab.aiffread, '.aiff' : audiolab.aiffread, '.wav' : audiolab.wavread}
         readFunc = sformats[(os.path.splitext(soundfilePath)[1]).lower()]
-        x, fs, p = readFunc(soundfilePath)
+        x, fs, p = readFunc(os.path.expanduser(soundfilePath))
 
         if len(np.shape(x)) > 1:
             x = x[:, 0]
@@ -197,9 +202,10 @@ class OMPursuitDictionary:
         for i, sg in enumerate(streamRefs):
             self.soundgrains[i+1] = OMPursuitSoundgrain(sg.source, downsampleFactor)
             
-        #build the descriptor object (holds the raw data, might not need this at a later stage...)
+        #build the descriptor object (holds the raw data, might not need this as an attibute at a later stage...)
+        #TODO: some of the frame types in the definition may not have data associated, so the table references should be built when reading the SDIF
         self.descriptorLookup = {}
-        for i in range(1, self.numRefs+1):
+         for i in range(1, self.numRefs+1):
             self.descriptorLookup[i] = {}
             for ft in sdifFile.get_frame_types():
                 self.descriptorLookup[i][ft.signature]  = {}
@@ -210,11 +216,18 @@ class OMPursuitDictionary:
                     self.descriptorLookup[i][ft.signature][component.signature]['values'] = []
                     self.descriptorLookup[i][ft.signature][component.signature]['time'] = []
 
+        
+        for g in self.soundgrains.values():
+            g.globalValues = {}
+
         #read the descriptor values from the sdif and fill the lookup table
         for frame in sdifFile:
             for matrix in frame:
-                self.descriptorLookup[frame.id][frame.signature][matrix.signature]['values'].append((matrix.get_data()[0]))
-                self.descriptorLookup[frame.id][frame.signature][matrix.signature]['time'].append(frame.time) 
+                if frame.signature == 'XGLB':
+                    self.soundgrains[frame.id].globalValues[matrix.signature] = (matrix.get_data()[0])[0]
+                else:  
+                    self.descriptorLookup[frame.id][frame.signature][matrix.signature]['values'].append((matrix.get_data()[0]))
+                    self.descriptorLookup[frame.id][frame.signature][matrix.signature]['time'].append(frame.time) 
 
         #get the dimension in order to build the ndarrays
         maxy = [0, 0]
@@ -226,27 +239,29 @@ class OMPursuitDictionary:
                     if n > maxy[i]:
                         maxy[i] = n
 
-        dtype = [(d, float) for d in self.descriptorLookup[1]['1WMN'].keys()]
+        dtype = [(d, float) for d in self.descriptorLookup[1]['1WMN'].keys() if len(self.descriptorLookup[1]['1WMN'][d]['values']) > 0]
         dtype.append(('time', float))
 
         for i in range(1, self.numRefs+1):
             for q, ys in enumerate(maxy):
                 if q == 0:
                     self.soundgrains[i].shortTimeDescriptors = np.zeros(ys, dtype=dtype)
-                    dummyArray = self.soundgrains[i].shortTimeDescriptors 
+                    dummyArray = self.soundgrains[i].shortTimeDescriptors
+                    dummyString = '1DSC' 
                 else:
                     self.soundgrains[i].averagedDescriptors = np.zeros(ys, dtype=dtype)
                     dummyArray = self.soundgrains[i].averagedDescriptors
+                    dummyString = '1WMN'
  
-                for j in range(maxy[1]):
+                for j in range(ys):
                     checkTime = True
                     for key in [d[0] for d in dtype]:
                         if key != 'time':
-                            if len(self.descriptorLookup[i]['1WMN'][key]['values']) > j:
-                                dummyArray[j][key] =  self.descriptorLookup[i]['1WMN'][key]['values'][j]
+                            if len(self.descriptorLookup[i][dummyString][key]['values']) > j:
+                                dummyArray[j][key] =  self.descriptorLookup[i][dummyString][key]['values'][j]
                                 if checkTime:   
                                     checkTime = False
-                                    dummyArray[j]['time'] = self.descriptorLookup[i]['1WMN'][key]['time'][j]
+                                    dummyArray[j]['time'] = self.descriptorLookup[i][dummyString][key]['time'][j]
 
         self.indices = set(self.soundgrains.keys()) #store the set of indices to apply the constriant operations later
 
