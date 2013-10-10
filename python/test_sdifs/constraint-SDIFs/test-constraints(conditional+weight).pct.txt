@@ -1,0 +1,72 @@
+SDIF
+
+1NVT
+{
+Date	2013/09/25 18:25:12;
+TableName	FileInfo;
+Author	OM 6.7 beta 1;
+}
+1NVT
+{
+TableName	OM-Pursuit Info;
+Author	M.Schumacher,G.Boyes;
+This file was produced by	OM-Pursuit;
+}
+1NVT
+{
+Fullconstraint	((> 1SCN 0 1) w (w 1SLR 0 2));
+TableName	Constraint;
+}
+
+1TYP
+{
+  1MTD	XPCT	{Pursuit-Constraint}
+  1FTD	XPCT
+	{
+	  XPCT	Pursuit-Constraint;
+	}
+}
+
+1IDS
+{
+  1 constraint-1: > 1SCN 0 1;
+  2 constraint-2: w 1SLR 0 2;
+}
+
+
+SDFC
+
+XPCT	1	1	0
+  XPCT	0x0004	1	1
+	0
+
+XPCT	1	2	0
+  XPCT	0x0004	1	1
+	0
+
+XPCT	1	2	29
+  XPCT	0x0004	1	1
+	66
+
+XPCT	1	2	50
+  XPCT	0x0004	1	1
+	32
+
+XPCT	1	2	74
+  XPCT	0x0004	1	1
+	76
+
+XPCT	1	2	88
+  XPCT	0x0004	1	1
+	36
+
+XPCT	1	1	100
+  XPCT	0x0004	1	1
+	100
+
+XPCT	1	2	100
+  XPCT	0x0004	1	1
+	0
+
+ENDC
+ENDF
