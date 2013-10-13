@@ -409,41 +409,54 @@ class OMPursuitAnalysis:
 
                 self.ompDictionary.reinitWeights()
 
-            #need to check that max simul and no duplicate constraints are met (required)
-            i = np.argmax(coefficients)
+            #TODO: it would be an optimization to actually exclude the sgs that violate maxsimul
+            validSoundgrain = False
+            for i in np.argsort(coefficients)[::-1]:
 
-            #for i in np.argsort(coefficients)[::-1]:
-                
+                indexwhere = set(np.argwhere(self.ompModel.parameterArray['mindex'][0:totalCount] == cindices[i]).flatten())
+                timewhere = set(np.argwhere(abs(self.ompModel.parameterArray['mtime'][0:totalCount] - self.ompMarkers.times[i]) < 0.0000000001).flatten())
+                                
+                #TODO: fix the costly loopfor situation when the compound constraint returns an empty set, means cindices will contain zeros
+                a = (len(timewhere) < self.maxNumSimultaneousSoundgrains)
+                b = (indexwhere & timewhere == set([]))
+                c = (cindices[i] != 0)
+                #print(a, b, c)
+                if a and b and c:
+                    validSoundgrain = True
 
-            #update the signal vectors
-            grain = self.ompDictionary.soundgrains[cindices[i]].signal
-            targseg = self.ompTarget.signalSegment(self.ompMarkers.times[i], len(grain)) 
-            targseg -= grain * coefficients[i]
+                    #update the signal vectors
+                    grain = self.ompDictionary.soundgrains[cindices[i]].signal
+                    targseg = self.ompTarget.signalSegment(self.ompMarkers.times[i], len(grain)) 
+                    targseg -= grain * coefficients[i]
 
-            modseg = self.ompModel.signalSegment(self.ompMarkers.times[i], len(grain))
-            modseg += grain * coefficients[i]
+                    modseg = self.ompModel.signalSegment(self.ompMarkers.times[i], len(grain))
+                    modseg += grain * coefficients[i]
             
-            #need to store the params of the sucessfull sg (required)
-            for key in self.ompDictionary.soundgrains[cindices[i]].averagedDescriptors.dtype.names:
-                self.ompModel.parameterArray[totalCount][key] = self.ompDictionary.soundgrains[cindices[i]].averagedDescriptors[key][0]
+                    #store the parameters
+                    for key in self.ompDictionary.soundgrains[cindices[i]].averagedDescriptors.dtype.names:
+                        self.ompModel.parameterArray[totalCount][key] = self.ompDictionary.soundgrains[cindices[i]].averagedDescriptors[key][0]
 
-            self.ompModel.parameterArray[totalCount]['mtime'] = self.ompMarkers.times[i]
-            self.ompModel.parameterArray[totalCount]['mcoef'] = coefficients[i]
-            self.ompModel.parameterArray[totalCount]['mindex'] = cindices[i]
+                    self.ompModel.parameterArray[totalCount]['mtime'] = self.ompMarkers.times[i]
+                    self.ompModel.parameterArray[totalCount]['mcoef'] = coefficients[i]
+                    self.ompModel.parameterArray[totalCount]['mindex'] = cindices[i]
  
-            #update the count
-            totalCount += 1
+                    #update the count
+                    totalCount += 1
             
-            p = np.argwhere(abs(self.ompMarkers.times - self.ompMarkers.times[i]) > self.minSoundgrainDistance)
-            ntime = [self.ompMarkers.times[k][0] for k in p]
-            ntime.append(self.ompMarkers.times[i]) #don't exclude the current time point 
-            self.ompMarkers.times = np.sort(np.array(ntime))
-            coefficients = np.zeros(len(self.ompMarkers.times))
-            cindices = np.zeros(len(self.ompMarkers.times))
+                    #remove the time points that violate the minimum distance constraint
+                    p = np.argwhere(abs(self.ompMarkers.times - self.ompMarkers.times[i]) > self.minSoundgrainDistance).flatten()
+                    ntime = [self.ompMarkers.times[k] for k in p]
+                    ntime.append(self.ompMarkers.times[i]) #don't exclude the current time point, i.e. simultaneous sgs 
+                    self.ompMarkers.times = np.sort(np.array(ntime))
+                    coefficients = np.zeros(len(self.ompMarkers.times))
+                    cindices = np.zeros(len(self.ompMarkers.times))
+                    break
 
-            #need to check for valid time points to update (only those that intersect with where the previous sg was removed (optimization)
-
-            
+                    #need to check for valid time points to update (only those that intersect with where the previous sg was removed (optimization)
+                
+            if not validSoundgrain:
+                print('No soundgrains satisfy the given constraints')
+                break
 
             
         

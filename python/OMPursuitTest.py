@@ -27,7 +27,7 @@ for ci, constraint in enumerate(os.listdir(os.path.expanduser(constraint_path)))
         target.zeropadSignal(D, markers)
 
         #omdictionary, omcompoundconstraint, omtarget, ommarkers, maxtotal, mindistance, maxsimultaneous)
-        A = OMPursuit.OMPursuitAnalysis(D, C, target, markers, 200, 0.025, 10)
+        A = OMPursuit.OMPursuitAnalysis(D, C, target, markers, 1000, 0., 1000)
         A.constrainedMP()
         audiolab.aiffwrite(A.ompModel.signal, os.path.expanduser('~/Research/OM-Pursuit/output/harm_fof-with-constraint%d.aif'%ci), A.ompModel.samplerate)
         #print(A.ompModel.parameterArray)
