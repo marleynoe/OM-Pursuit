@@ -45,6 +45,9 @@
    
 (recursive-load-classes (om-relative-path '("sources" "classes") nil) *current-lib*)
                  
+(defparameter *om-pursuit-lib-path* (make-pathname :directory (pathname-directory *load-pathname*)))
+
+
 
 (mapcar #'(lambda (file) (compile&load (om-relative-path '("sources") file )))
         '(
@@ -83,13 +86,55 @@
                                   ("slot" nil nil (process-array-slot slot-lowpass slot-highpass slot-scale) nil)
                                   ("array-field" nil nil (process-array-field array-field field-lowpass field-highpass) nil))
                                  nil nil nil)
-                    ("Utilities" (nil nil nil (get-bpf-points atoms->chords ) nil)))                   
+                    ("Utilities" (
+                                  (nil nil nil (get-bpf-points atoms->chords ) nil)))                   
                     ))
          
 ;(sub-pack-name subpack-lists class-list function-list class-alias-list)
 
 ;(setq *my-bg-pict* (om-load-and-store-picture "dibox" 'omato))
 
+
+
+; Version control
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; before committing
+; (CL-User::clean-sources *om-pursuit-lib-path*)
+
+; Distribution 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; generate html reference
+; (gen-lib-reference "OM-Pursuit")
+; before distribution
+; (clean-repo *om-pursuit-lib-path*) 
+
+(set-lib-release 1.0) 
+
+(defun clean-repo (&optional dir)
+  (let ((src-root (or dir (make-pathname :directory (butlast (pathname-directory *load-pathname*) 2)))))
+    (mapc #'(lambda (file) 
+             
+              (if (system::directory-pathname-p file)
+                  (if (cond (
+                             (string-equal ".git" (car (last (pathname-directory file))))
+                             (string-equal ".dropbox" (car (last (pathname-directory file))))
+                             (string-equal ".svn" (car (last (pathname-directory file))))
+                      (system::call-system (concatenate 'string "rm -Rf \"" (namestring file) "\""))
+                    (clean-repo file))
+                (when (and (pathname-type file)
+                           (or (string-equal (pathname-type file) "xfasl")
+                               (string-equal (pathname-type file) "fasl")
+                               (string-equal (pathname-type file) "DS_STORE")
+                               (string-equal (pathname-type file) "nfasl")
+                               (string-equal (pathname-type file) "ofasl")
+                               (string-equal (pathname-type file) "ufasl")
+                               (string-equal (pathname-type file) "lisp~")))
+                  (print (concatenate 'string "Deleting " (namestring file) " ..."))
+                  (delete-file file)
+                  )
+                ))
+          (directory (namestring src-root) :directories t))))
+    ))
 
 (om-message-dialog 
 "===========================

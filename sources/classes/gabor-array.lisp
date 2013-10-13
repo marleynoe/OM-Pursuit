@@ -29,7 +29,7 @@
            )
 
 ; %%%% OBJFROMOBJS for Chroma classes
-
+#|
 (defmethod objfromobjs ((self gabor-array) (type fm-2))
   (let* ((gabordata (data self))
          (frequency (fifth gabordata))
@@ -95,6 +95,8 @@
                              :fdev (sixth gabordata) ;sixth=phase, seventh=bandwidth ; eigth=molecule
                              )))
     new))
+
+|#
 
 #|
 

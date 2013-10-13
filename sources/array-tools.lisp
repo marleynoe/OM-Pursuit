@@ -249,6 +249,7 @@
               (array-field self slotname (third (multiple-value-list (om-sample (second (mat-trans (reduce-points curve (* 0.01 (- 100 points))))) numcomps))))
               ))
 
+#|
 (defmethod! field-lowpass ((self class-array) (slotname string) (filtertype string) (windowsize number) (recursion-depth number))
             :icon 04
             :initvals '(nilarray-data nil "lowpass" 3 1)
@@ -298,6 +299,7 @@
                                        (om- thedata (filtres::mean-filter-rec thedata windowsize-l recursion-depth-l)))))
                     ))
               )
+|#
 
 (defmethod! field-scale ((self class-array) (slotname string) &key minval maxval exp)
             :icon 04
@@ -369,7 +371,7 @@
             (convert-paths thedata discard-levels new-dir keep-levels)
             )
 
-
+#|
 (defmethod! slot-lowpass ((thedata list) (filtertype string) (windowsize number) (recursion-depth number))
             :icon 04
             :initvals '(nil "lowpass" 3 1)
@@ -408,7 +410,7 @@
                    (om- (om- thedata (filtres::mean-filter-rec thedata windowsize-h recursion-depth-h)) 
                         (om- thedata (filtres::mean-filter-rec thedata windowsize-l recursion-depth-l))))
                   ))
-     
+|#
                                 
 
 (defmethod! slot-scale ((thedata list) &key minval maxval exp)

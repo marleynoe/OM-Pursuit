@@ -35,7 +35,7 @@
 
 
 ; %%%% OBJFROMOBJS for Chroma classes
-
+#|
 (defmethod objfromobjs ((self fof-array) (type fm-2))
   (let* ((fofdata (data self))
          (frequency (fifth fofdata))
@@ -116,6 +116,7 @@
                              )))
     new))
 
+|#
 ; new Prisma-synthesizers
 
 #|
@@ -229,8 +230,6 @@
     new))
 
 |#
-
-
 
 ;if I want to make it closer to the piano, the sounds should last longer, and the decaytime should be related to strikevelocity
 

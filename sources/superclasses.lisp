@@ -82,12 +82,3 @@
 
 (defmethod get-fonde-pict ((self sound-array)) *my-bg-pict*)
 (defmethod get-fonde-pict ((self sound-atom)) *my-bg-pict*)
-
-; %%%%%%%%%%%%% window functions %%%%%%%%%%%%%%%%
-
-;requires OMChroma
-(defclass! Gen20 (bpf-cs-table) () (:icon 605))
-(defmethod tnum ((self Gen20)) 20)
-
-(defclass! Gen-20 (bpf-cs-table) () (:icon 605))
-(defmethod tnum ((self Gen-20)) -20)

@@ -26,12 +26,6 @@
            (:icon 03)
            )
 
-(defclass! sgn-array2 (soundgrain-array)
-           (
-            )
-           (:icon 03)
-           )
-
 
 #| ; for now deactivated (or overwritten)
 (defmethod objfromobjs ((self sgn-array) (type score-array))
@@ -120,7 +114,7 @@
 
 
 ; %%%%%%%%%%%% OBJFROMOBJS for Chroma classes
-
+#|
 (defmethod objfromobjs ((self sgn-array) (type smpl-1))
   (let* ((sgndata (data self))
          (paths (seventh sgndata))
@@ -136,7 +130,7 @@
                              :wrap 0
                              )))
     new))
-
+|#
 
 
 #|

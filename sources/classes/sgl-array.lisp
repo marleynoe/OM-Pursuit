@@ -31,7 +31,7 @@
 
 
 ; %%%%%%%% OBJFROMOBJS for Chroma classes
-
+#|
 (defmethod objfromobjs ((self sgl-array) (type smpl-1))
   (let* ((sgldata (data self))
          (theamplitude (sgl-amplitude (fourth sgldata) (third sgldata)))
@@ -72,7 +72,7 @@
                              :velocity (nth 8 sgldata) ;this doesn't consider bandwidth nor skirtwidth...
                              :chord (nth 9 sgldata))))
     new))
-
+|#
 #| new methods for Prisma synthesizers
 
 (defmethod objfromobjs ((self sgl-array) (type richard))

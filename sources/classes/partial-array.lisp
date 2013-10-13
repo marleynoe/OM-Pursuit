@@ -28,7 +28,7 @@
            )
 
 ; %%%% OBJFROMOBJS for Chroma classes
-
+#|
 (defmethod objfromobjs ((self partial-array) (type fm-1))
   (let* ((partialdata (data self))
          (new (make-instance 'fm-1
@@ -102,6 +102,7 @@
                              :imax (sixth partialdata) ; (om* pi) ?
                              )))
     new))
+|#
 
 #|
 

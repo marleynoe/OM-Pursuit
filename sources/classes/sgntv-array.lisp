@@ -48,7 +48,7 @@
     new))
 
 ; %%%%%%%%%%%% OBJFROMOBJS for Chroma classes
-
+#|
 (defmethod objfromobjs ((self sgn-array) (type smpl-1))
   (let* ((sgndata (data self))
          (paths (seventh sgndata))
@@ -64,7 +64,7 @@
                              :wrap 0
                              )))
     new))
-
+|#
 #|
 
 ; new methods for Prisma classes

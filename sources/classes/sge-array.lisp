@@ -57,7 +57,7 @@
   
 
 ; %%%%%%%%%%%% OBJFROMOBJS for Chroma classes
-
+#|
 (defmethod objfromobjs ((self sge-array) (type smpl-1))
   (let* ((sgedata (data self))
          (paths (seventh sgedata))
@@ -73,3 +73,4 @@
                              :wrap 0
                              )))
     new))
+|#

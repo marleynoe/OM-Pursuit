@@ -647,7 +647,7 @@ Ex. (om-scale '(0 2 5) 0 100)  => (0 40 100)
 
 
 
-
+#|
 (defmethod! sound->envelope ((self sound) (resolution number) &key (filtertype "lowpass") (windowsize 3) (recursions 5) (unit "linear"))
 ;based samples + samplerate  I can determine a bw in Hz (or samplerate of the Env-follower)
             :icon '(141) 
@@ -672,7 +672,7 @@ Ex. (om-scale '(0 2 5) 0 100)  => (0 40 100)
                     (thexpoints (arithm-ser 0 thedur (om/ thedur resolution) thedur)))
                 (simple-bpf-from-list thexpoints theenvelope 'bpf 10)
                 )))
-
+|#
 
 
 
