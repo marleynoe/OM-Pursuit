@@ -12,7 +12,6 @@ class OMPursuitConstraint:
     def __init__(self, constraintString):
 
         #Will use this later to build the expression from the fullconstraint
-        constraintString = constraintString[1:]
         self.cString = constraintString
         self.cString = '(' + self.cString + ')'
         print(self.cString)
@@ -39,16 +38,29 @@ class OMPursuitConstraint:
             self.cType = 'k-nearest'
             self.kn = eval(parsedConstraintString[0])
             print(self.kn)
-        
+
+        else:
+            raise Exception        
+
         self.index = eval(parsedConstraintString[3])
         print(self.index)
         print(self.cType)
 
     def interpolatedValue(self, time, kind='linear'):
         f = interp1d(self.cTimes, self.cValues, kind=kind)
-        return f(time)
+        try:
+            x = f(time)
+        #if the time is outside of the range of the function, return the last value
+        except ValueError:
+            if time > self.cTimes[len(self.cValues)-1]:
+                x = self.cValues[len(self.cValues)-1]
+            elif time < self.cTimes[0]:
+                x = self.cValues[0]
+            else:
+                raise Exception
+        return x
 
-    def cFunction(self, D, time, indices=None):
+    def cFunction(self, D, time):
         value = self.interpolatedValue(time)
 
         if self.cType == 'conditional':
@@ -56,39 +68,28 @@ class OMPursuitConstraint:
 
         elif self.cType == 'weight':
 
-            #find indices
-            if not indices:
-                indices = set([i for i in range(1, D.len()+1)])
+            indices = [i for i in range(1, D.len()+1)]
 
             #normalize according to signature
             q = np.zeros(D.len())
 
             for k in indices:
                 q[k-1] = D.soundgrains[k].averagedDescriptors[self.cSignature].copy()
+
             m = max(abs(q))
             q *= 1.0/m
 
-            #apply weights
-            for k in indices:
-                D.constraints[k].tempGain *= q[k-1] 
-     
-            return indices
+            return dict(zip(indices, q))
 
         elif self.cType == 'bias':
-
-            if not indices:
-                indices = set([i for i in range(1, D.len()+1)])
-            for k in indices:
-                D.constraints[k].tempGain *= value
-
-            return indices
+            return value
 
         elif self.cType == 'k-nearest':
        
             #can always work with all the atoms
             q = np.zeros(D.len())
             for k in range(1, D.len()+1):
-                q[k] = D.soundgrains[k].averagedDescriptors[self.cSignature].copy()
+                q[k-1] = D.soundgrains[k].averagedDescriptors[self.cSignature].copy()
             
             return set(np.argsort(np.abs(q - value))[0:self.kn] + 1)
 
@@ -98,12 +99,11 @@ class OMPursuitCompoundConstraint:
 
     def __init__(self, constraintSdifPath):
 
-        sdifFile = pysdif.SdifFile(constraintSdifPath, 'r')
+        sdifFile = pysdif.SdifFile(os.path.expanduser(constraintSdifPath), 'r')
         sc = sdifFile.get_stream_IDs()
 
         self.constraints = {}
-        self.operatorLookup = {'and' : operator.and_, 'or' : operator.or_ , 'xor' : operator.xor, 'nand' : lambda p, q, r : operator.xor(p, (q & r)), 'nor' : lambda p, q, r : operator.xor(p, (q|r))}
-
+        self.operatorLookup = {'and ' : 'self.andOMP', 'or ' : 'self.orOMP', 'xor ': 'self.xorOMP', 'nand ' : 'self.nandOMP', 'nor ' : 'self.norOMP', 'xnor ' : 'self.xnorOMP', 'b ' : 'self.biasOMP', 'w ' : 'self.weightOMP'}
         self.numConstraints = len(sc)
 
         constraintValues = [[] for i in range(self.numConstraints)]
@@ -124,9 +124,9 @@ class OMPursuitCompoundConstraint:
 
         #read the frames from the sdif file
         for frame in sdifFile:
-            constraintTimes[i-1].append(frame.time)
+            constraintTimes[frame.id-1].append(frame.time)
             for matrix in frame:  
-                constraintValues[i-1].append(matrix.get_data()[0][0])
+                constraintValues[frame.id-1].append(matrix.get_data()[0][0])
 
         #add the times and values to the constraint 
         for i in range(1, self.numConstraints+1):
@@ -134,6 +134,11 @@ class OMPursuitCompoundConstraint:
             self.constraints[i].cTimes = np.array(constraintTimes[i-1])
 
     def cFullConstraintFunction(self, D, time):
+
+        if not hasattr(self, 'dictionaryReference'):        
+            self.dictionaryReference = D #keep a reference to the dictionary in name space
+            self.fullConstraintString = re.sub('nil', str(set(D.soundgrains.keys())), self.fullConstraintString)
+
         #simplest case, only one constraint
         tempString = self.fullConstraintString
 
@@ -141,18 +146,56 @@ class OMPursuitCompoundConstraint:
         for c in self.constraints.values():
             tempString = re.sub(c.cString, str(c.cFunction(D, time)), tempString)
 
-        #then check and replace the combination operators
+        #then check and replace the combination operators        
+        for k in self.operatorLookup.keys():
+            if k in tempString: 
+                tempString = re.sub(k, self.operatorLookup[k], tempString)
         
-    
         #finally return the evaluated string, yields a set of indices
         return(eval(tempString))
 
+
+    #TODO: refactor, many of these are duplicates of functions and are added for consistency 
     def andOMP(self, indices1, indices2):
         return operator.and_(indices1, indices2)
 
     def orOMP(self, indices1, indices2):
         return operator.or_(indices1, indices2)
-    
+
+    def xorOMP(self, indices1, indices2):
+        return operator.xor_(indices1, indices2)
+
+    def nandOMP(self, indices1, indices2):
+        if hasattr(self, 'dictionaryReference'):
+            return operator.xor(set(self.dictionaryReference.keys()), operator.and_(indices1, indices2))
+        else:
+            return set([]) 
+
+    def norOMP(self, indices1, indices2):
+        if hasattr(self, 'dictionaryReference'):
+            return operator.xor(set(self.dictionaryReference.keys()), operator.or_(indices1, indices2))
+        else:
+            return set([])
+
+    def xnorOMP(self, indices1, indices2):
+        if hasattr(self, 'dictionaryReference'):
+            return operator.xor(set(self.dictionaryReference.keys()), operator.xor(indices1, indices2))
+        else:
+            return set([])    
+
+    def biasOMP(self, indices, bvalue):
+         if hasattr(self, 'dictionaryReference'):
+             for k in indices:
+                 self.dictionaryReference.soundgrains[k].tempGain *= bvalue
+         return indices #just return the input indices
+
+    def weightOMP(self, indices, wdict):
+        if hasattr(self, 'dictionaryReference'):
+            for k in indices:
+                self.dictionaryReference.soundgrains[k].tempGain *= wdict[k]
+        return indices #just return the input indices
+
+
 class OMPursuitSoundgrain:
     '''Data representation for a single sound file within an OMPursuitDictionary'''
 
@@ -189,7 +232,7 @@ class OMPursuitDictionary:
     def __init__(self, sdifPath, downsampleFactor):
 
         #obtain the sdif file object
-        sdifFile = pysdif.SdifFile(sdifPath, 'r')
+        sdifFile = pysdif.SdifFile(os.path.expanduser(sdifPath), 'r')
         
         #obtain the references to the streams in sdifFile
         streamRefs = sdifFile.get_stream_IDs()
@@ -205,7 +248,7 @@ class OMPursuitDictionary:
         #build the descriptor object (holds the raw data, might not need this as an attibute at a later stage...)
         #TODO: some of the frame types in the definition may not have data associated, so the table references should be built when reading the SDIF
         self.descriptorLookup = {}
-         for i in range(1, self.numRefs+1):
+        for i in range(1, self.numRefs+1):
             self.descriptorLookup[i] = {}
             for ft in sdifFile.get_frame_types():
                 self.descriptorLookup[i][ft.signature]  = {}
@@ -269,5 +312,5 @@ class OMPursuitDictionary:
         return len(self.soundgrains.keys())
 
     def reinitWeights(self):
-        for i in self.soundgrains.keys():
-            self.soundgrains[i].tempGain = 1.0    
+        for s in self.soundgrains.values():
+            s.tempGain = 1.0    
