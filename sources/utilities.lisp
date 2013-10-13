@@ -817,7 +817,13 @@ If <samplerate> is NIL, the OM default sample rate is used to calculate the samp
 
 ;==============
 
-; Utility functions
+; Utility string functions
 
 (defun find-string-in-list (string list)
 (position string list :test #'string-equal))
+
+(defmethod! split-string ((string string) (char string))
+            :numouts 2
+            (let ((index (search char string)))
+              (if index (values (subseq string 0 index) (subseq string (+ index 1)))
+                (values string nil))))
