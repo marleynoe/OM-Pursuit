@@ -21,23 +21,44 @@
 (in-package :om)
 
 (defvar *pursuit-constraint-sdif-types* 
-  (x-append (make-instance 'sdiftype
-                           :struct 'f
-                           :signature "XPCT"
-                           :description '(("XPCT" "Pursuit-Constraint"))
-                           )
-            (make-instance 'sdiftype
-                           :struct 'm
-                           :signature "XPCT"
-                           :description '("Pursuit-Constraint")
-                           )
-            ))
+  (x-append 
+   (make-instance 'sdiftype
+                  :struct 'f
+                  :signature "XPCT"
+                  :description '(("XPCT" "Pursuit-Constraint") ("XMSA" "Max-simultaneous-atoms") ("XMSC" "Max-simultaneous-corpus-atoms") ("XMNT" "Min-time-distance") ("XMXT" "Max-time-distance")) 
+                  )
+   (make-instance 'sdiftype
+                  :struct 'm
+                  :signature "XPCT"
+                  :description '("Pursuit-Constraint")
+                  )
+   (make-instance 'sdiftype
+                  :struct 'm
+                  :signature "XMSA"
+                  :description '("Max-simultaneous-atoms")
+                  )
+   (make-instance 'sdiftype
+                  :struct 'm
+                  :signature "XMSC"
+                  :description '("Max-simultaneous-corpus-atoms")
+                  )
+   (make-instance 'sdiftype
+                  :struct 'm
+                  :signature "XMNT"
+                  :description '("Min-time-distance")
+                  )
+   (make-instance 'sdiftype
+                  :struct 'm
+                  :signature "XMXT"
+                  :description '("Max-time-distance")
+                  )
+   ))
 
 (defvar *om-pursuit_default-nvt* (make-instance 'sdifnvt
-                                                :nv-pairs '(("This file was produced by" "OM-Pursuit") ("Author" "M.Schumacher,G.Boyes"))
+                                                :nv-pairs '(("This file was produced by" "OM-Pursuit") ("Authors" "M.Schumacher, G.Boyes"))
                                                 :tablename "OM-Pursuit Info"
                                                 :id 0 ))
-
+*pursuit-constraint-sdif-types*
 
 ; class for defining a constraint in OM-Pursuit
 ; how can I make menuins for slots of the classes?
@@ -81,24 +102,11 @@
 
 ; this function allows combining different sub-constraints (constraint-blocks) into larger scale tree-structures
 (defmethod! ctr-combine ((operator symbol) (constraint1 t) (constraint2 t))
+            :icon 06
             :initvals '(nil nil nil)
             :menuins '( (0 (("AND" 'AND) ( "NAND" 'NAND ) ( "OR" 'OR ) ( "NOR" 'NOR ) ( "XOR" 'XOR ) ( "XNOR" 'XNOR ))))
-                            ;( "W" 'W ) ( "B" 'B ))))
-
-            ;need a check here: 
-            ;(print (constraint constraint1))
-            ;(print (constraint constraint2)) ; need to be able to check for nested constraints, possibly with a cond statement
-            ;(if ((or (consp (constraint constraint1)) (consp (constraint constraint1)
-            #|
-            (cond  ((or (equal (constraint constraint1) 'w) (equal (constraint constraint2) 'w)) (list constraint1 'w constraint2))
-                   ((or (equal (constraint constraint1) 'b) (equal (constraint constraint2) 'b)) (list constraint1 'b constraint2))
-                   (t (list constraint1 operator constraint2)))
-            |#
-            
             (list operator (list constraint1 "," constraint2))
-           ; (format nil "(~a (~a,~a))" operator constraint1 constraint2)
             )
-
 
 (defmethod! ctr-weight ((constraint t) (weighting t))
             ;:indoc 
@@ -169,6 +177,7 @@
                                        :tablename "Constraint"
                                        :id 0))
                    (transframes (mat-trans frame-list)))
+              
               (make-instance 'sdif-buffer
                              :types *pursuit-constraint-sdif-types*
                              :nvts (x-append *om-pursuit_default-nvt* nvt (car transframes))
@@ -176,10 +185,73 @@
                              )   
             ))
 
-
+#|
 (defmethod! ctr-compile ((ctr-constraint sgn-constraint))
             (call-next-method)
             )
+|#
+
+(defmethod! ctr-compile-mp ((ctr-constraint t))
+            :icon 02
+            ;(print constraint)
+            (let* ((object-list (flat (list-filter 'sgn-constraint-p (list! ctr-constraint) 'pass)))
+                   (side-effect (loop for item in object-list 
+                                      for i from 1 to (length object-list) do
+                                      (setf (streamid item) i)
+                                      )) 
+                   (full-constraint (print (replace-ctr-with-str ctr-constraint)))
+                   ;(print "thefullconstraint")
+                   ;(print full-constraint)
+                   (frame-list
+                    (loop for item in object-list 
+                          for i from 1 to (length object-list) collect
+                                
+                          (list
+                           ;write StreamID table
+                           (make-instance 'sdifsid
+                                          :id i
+                                          :source (string+ "constraint-" (number-to-string i))
+                                          :treeway (format nil "~s ~s ~d ~d" (constraint item) (descriptor item) (order item) (streamid item))
+                                          )
+                           
+                           ; write SDIF frames
+                           (if (bpf-p (value item))
+                               (loop for pair in (point-pairs (value item)) collect
+                                     (make-instance 'sdifframe
+                                                    :signature "XPCT"
+                                                    :ftime (car pair)
+                                                    :StreamId i
+                                                    :LMatrix (make-instance 'raw-sdifmatrix
+                                                                            :signature (descriptor item)
+                                                                            :data (list (second pair))
+                                                                            )
+                                                    )
+                                     )
+                             (make-instance 'sdifframe
+                                            :signature "XPCT"
+                                            :ftime 0
+                                            :StreamId i
+                                            :LMatrix  (make-instance 'raw-sdifmatrix
+                                                                            :signature (print (descriptor item))
+                                                                            :data (list (value item))
+                                                                            )
+                                            )
+                             ))
+                          ))
+                   
+                   ; write nvt
+                   (nvt (make-instance 'sdifnvt
+                                       :nv-pairs (print (list (list "Fullconstraint" (replace-string (itemtostring full-constraint) " , "))))
+                                       :tablename "Constraint"
+                                       :id 0))
+                   (transframes (mat-trans frame-list)))
+              (make-instance 'sdif-buffer
+                             :types *pursuit-constraint-sdif-types*
+                             :nvts (x-append *om-pursuit_default-nvt* nvt (car transframes))
+                             :lframes (flat (cdr transframes))
+                             )   
+            ))
+
 
 #|
 ; why can't I set the signature of an sdifmatrix?
