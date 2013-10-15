@@ -7,7 +7,7 @@ import scikits.audiolab as audiolab
 path = '~/Research/OM-Pursuit/sounds/test/Benvibes-test-inclmidi.dict.sdif'
 constraint_path = '~/Research/OM-Pursuit/constraints'
 targetPath = '~/Research/OM-Pursuit/target/harm_fof/harm_fof.wav' 
-markerPath = '~/Research/OM-Pursuit/target/harm_fof/harm_fof-mixed-mrk2.sdif' 
+markerPath = '~/Research/OM-Pursuit/target/harm_fof/harm_fof-mixed-mrk.sdif' 
 dsfactor = 1
 
 D = OMPursuit.OMPursuitDictionary(path, dsfactor)
@@ -27,7 +27,7 @@ for ci, constraint in enumerate(os.listdir(os.path.expanduser(constraint_path)))
         target.zeropadSignal(D, markers)
 
         #omdictionary, omcompoundconstraint, omtarget, ommarkers, maxtotal, mindistance, maxsimultaneous)
-        A = OMPursuit.OMPursuitAnalysis(D, C, target, markers, 1000, 0., 1000)
+        A = OMPursuit.OMPursuitAnalysis(D, C, target, markers, 1000, 0.05, 2)
         A.constrainedMP()
         audiolab.aiffwrite(A.ompModel.signal, os.path.expanduser('~/Research/OM-Pursuit/output/harm_fof-with-constraint%d.aif'%ci), A.ompModel.samplerate)
         #print(A.ompModel.parameterArray)
