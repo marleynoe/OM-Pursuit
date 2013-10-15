@@ -7,7 +7,7 @@ import scikits.audiolab as audiolab
 path = '~/Research/OM-Pursuit/sounds/test/Benvibes-test-inclmidi.dict.sdif'
 constraint_path = '~/Research/OM-Pursuit/constraints'
 targetPath = '~/Research/OM-Pursuit/target/harm_fof/harm_fof.wav' 
-markerPath = '~/Research/OM-Pursuit/target/harm_fof/harm_fof-mixed-mrk2.sdif' 
+markerPath = '~/Research/OM-Pursuit/target/harm_fof/harm_fof-mixed-mrk.sdif' 
 dsfactor = 1
 
 D = OMPursuit.OMPursuitDictionary(path, dsfactor)
