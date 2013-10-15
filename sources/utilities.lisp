@@ -24,7 +24,9 @@
 
 (defmethod! replace-string ((string string) (char string))
             :numouts 2
-            (let ((index (search char string)))
+            (let* ((index (search char string))
+                  (nustring string))
+              
               (if index 
                   (progn
                     (setf nustring (format nil "~a,~a" (subseq string 0 index) (subseq string (+ index 3))))
@@ -35,7 +37,7 @@
 
 ;=== Converts an item into a string
 (defun itemtostring (anything)
-  (format nil "~a" anything)
+  (format nil "~s" anything)
     )
 
 ;%%%%%%%%%%%%%% PLOTTING FUNCTIONS %%%%%%%%%%%%%%%
@@ -52,7 +54,7 @@
    t))
 
 (defun makestring (anything)
-  (format nil "~a" anything)
+  (format nil "~s" anything)
     )
 
 (defmethod! clearmaq ((self OMMaquette))
@@ -130,6 +132,7 @@
     (simple-bpf-from-list (list xpos x-extend x-extend xpos xpos) (list ypos ypos y-extend y-extend ypos) 'bpc 10)
     ))
 
+
 (defun draw-centered-rectangle (position horizontalsize verticalsize)
   (let* ((xpos (first position))
          (ypos (second position))
@@ -173,120 +176,6 @@
             (mapcar (lambda (thepaths)
                       (convert-paths thepaths discard-levels new-dir keep-levels)) self))
                    
-
-; %%%%%%%%%%%% FOR DRAWING BPCS (RECTANGLES) REPRESENTING GABOR SPACES %%%%%%%%%% 
-
-(defmethod! gabor-spaces ((markers list) (bpfs list) (scales number) (ranges number))
-            :icon 04
-            :numouts 3
-            (let* ((xmin (list-min markers))
-                   (thelist       
-                   (loop for marker in markers collect
-                         (loop for bpf in bpfs collect
-                               (if (inbetween? marker (x-points bpf))
-                                   (let* ((bpfdur (get-bpf-dur bpf))
-                                          (xextend (* bpfdur scales))
-                                          (xmax (+ marker xextend))
-                                          (ymin (- (list-min (y-points bpf)) (* 0.5 ranges)))
-                                          (ymax (+ (list-max (y-points bpf)) (* 0.5 ranges))))
-                                     (unless (> xmax (list-max (x-points bpf)))
-                                       (list (draw-centered-rectangle 
-                                              (list marker (x-transfer bpf (+ marker (* 0.5 xextend))))
-                                              xextend
-                                              ranges)
-                                             xmax
-                                             ymin
-                                             ymax)))
-                                     ))))
-                   (thetranslist (mat-trans (remove nil (flat thelist 1)))))
-               (values (bpf-colour (first thetranslist) :r (om-random 0.5 1.0) :g (om-random 0.5 1.0) :b (om-random 0.5 1.0))
-                      (list
-                        xmin (list-max (second thetranslist)))
-                      (list
-                       (list-min (third thetranslist)) (list-max (fourth thetranslist)))
-                      )
-               ))
-
-(defmethod! gabor-spaces ((markers list) (bpfs list) (scales list) (ranges list))
-            (let ((theresult
-                   (loop 
-                   ; for marker in markers
-                    for scale in scales
-                    for range in ranges
-                         collect
-                         (multiple-value-list (gabor-spaces markers bpfs scale range))))
-                         )
-              (let* ((thetranslist (mat-trans theresult))
-                     (thex (mat-trans (second thetranslist)))
-                     (they (mat-trans (third thetranslist))))               
-              (values (flat (first thetranslist))
-                      (list (list-min (first thex)) (list-max (second thex)))
-                      (list (list-min (first they)) (list-max (second they))))
-              )))
-
-; %%%%%%%%%%%% for drawing tfregions %%%%%%%%%%%%% COULDN'T I USE THIS SIMPLY FOR THE DRAWING INTO THE MAQUETTE?
-
-(defmethod! draw-tfregions ((markers list) (bpfs list) (scales number) (ranges number))
-            :icon 04
-            :numouts 5
-            (let* ((xmin (list-min markers))
-                   (thelist       
-                   (loop for marker in markers collect
-                         (loop for bpf in bpfs collect
-                               (if (inbetween? marker (x-points bpf))
-                                   (let* ((bpfdur (get-bpf-dur bpf))
-                                          (xextend (* bpfdur scales))
-                                          (xmin marker)
-                                          (xmax (+ marker xextend))
-                                          (ymin (- (list-min (y-points bpf)) (* 0.5 ranges)))
-                                          (ymax (+ (list-max (y-points bpf)) (* 0.5 ranges))))
-                                     ;(unless (> xmax (list-max (x-points bpf)))
-                                       (list (make-centered-temporalbox
-                                              (list marker (x-transfer bpf (+ marker (* 0.5 xextend))))
-                                              xextend
-                                              ranges)
-                                             xmin
-                                             xmax
-                                             ymin
-                                             ymax);)
-                                     ;(print bpfdur)
-                                     )
-                                     ))))
-                   (thetranslist (mat-trans (remove nil (flat thelist 1)))))
-              #|
-              (values  (bpf-colour (first thetranslist) :r (om-random 0.5 1.0) :g (om-random 0.5 1.0) :b (om-random 0.5 1.0))
-                        (list
-                       xmin (list-max (second thetranslist)))
-                      (list
-                       (list-min (third thetranslist)) (list-max (fourth thetranslist)))
-                       |#
-              
-              (values thetranslist
-                      (second thetranslist)
-                      (third thetranslist)
-                      (fourth thetranslist)
-                      (fifth thetranslist)
-                      )
-               ))
-#|
-(defmethod! make-tfregions ((markers list) (bpfs list) (scales list) (ranges list))
-            (let ((theresult
-                   (loop 
-                   ; for marker in markers
-                    for scale in scales
-                    for range in ranges
-                         collect
-                         (multiple-value-list (make-tf-regions markers bpfs scale range))))
-                         )
-              (let* ((thetranslist (mat-trans theresult))
-                     (thex (mat-trans (second thetranslist)))
-                     (they (mat-trans (third thetranslist))))               
-              (values (flat (first thetranslist))
-                      (list (list-min (first thex)) (list-max (second thex)))
-                      (list (list-min (first they)) (list-max (second they))))
-              )))
-|#
-
 
 (defmethod! find-bpflib-dimensions (bpflibs)
             :numouts 4
@@ -404,24 +293,6 @@
   (read-from-string (find-in-nvtlist (getnvtlist sdiffile) "sample rate")))
 
 ;%%%%%%%%%%%%%% FORMATTING FUNCTIONS %%%%%%%%%%%%%%%
-
-(defmethod! markers->frames ((self list) &key samplerate)
-            :icon '(141)
-            (when (listp (first self))
-              (setf out-array (adt-deep-format (om-round (sec->samples self (or samplerate *audio-sr*))))))
-            (when (numberp (first self))
-              (setf out-array (adt-format (om-round (sec->samples self (or samplerate *audio-sr*))))))
-            (when (sound-p (first self))
-              (setf out-array (adt-deep-format (om-round
-                               (loop for snd in self collect
-                                     (sec->samples (markers snd) (om-sound-sample-rate snd)))))))
-              out-array
-              )
-
-(defmethod! markers->frames ((self sound) &key samplerate)
-                   (let ((out-array (python-format (om-round (sec->samples (markers self) (om-sound-sample-rate self))))))
-            out-array
-            ))
 
 (defmethod sound-p ((self sound)) t)
 (defmethod sound-p ((self t)) nil) 
@@ -611,6 +482,7 @@ Ex. (om-scale '(0 2 5) 0 100)  => (0 40 100)
                  ))
 |#
 
+#|
 (defmethod! gen-window ((window t) &key (id "?") (maxamp 1.0) (size 4097) (decimals 10) (params 1))
             :icon '(209)
             :initvals '("Triangle" "?" 1.0 4097 10 1)
@@ -644,7 +516,7 @@ Ex. (om-scale '(0 2 5) 0 100)  => (0 40 100)
              ((or (equal window "Line") (equal window 11))
               (make-cs-table 'Gen-07  (list 0 (1- size)) (list maxamp maxamp) decimals id size))
              ))
-
+|#
 
 
 #|

@@ -100,25 +100,32 @@
             )
 
 
-(defmethod! ctr-weight ((constraint t) (sgn-constraint t))
+(defmethod! ctr-weight ((constraint t) (weighting t))
+            ;:indoc 
             ;:menuins '( (0 (( "W" 'W ) ( "B" 'B ))))
-            ;(print (list operator constraint sgn-constraint))
-            (if (or (equal (constraint sgn-constraint) 'w) (equal (constraint sgn-constraint) 'b))
-                (list (constraint sgn-constraint) (list constraint "," sgn-constraint))
-              ;  (format nil "(~a (~a,~a))" operator constraint sgn-constraint)
-              (print "constraint is not a weighting"))
+            ;(print (list operator constraint weighting))
+            (if ;(and
+                (or (equal (constraint weighting) 'w) (equal (constraint weighting) 'b))
+                ;(not (or (equal (constraint constraint) 'w) (equal (constraint constraint) 'b)))
+                ;)         
+                ;now I can't specify NILs anymore (because of the check for 
+                (list (constraint weighting) (list constraint "," weighting))
+              ;  (format nil "(~a (~a,~a))" operator constraint weighting)
+              (om-beep-msg "Please connect a constraint to left input and a weight to right input"))
               )
             
 ; this function takes a list of sgn-constraints and operators and writes an SDIF files
-(defmethod! ctr-compile ((constraint-list t))
+(defmethod! ctr-compile ((ctr-constraint list))
             :icon 02
-            ;(print constraint-list)
-            (let* ((object-list (print (flat (list-filter 'sgn-constraint-p (list! constraint-list) 'pass))))
+            ;(print constraint)
+            (let* ((object-list (flat (list-filter 'sgn-constraint-p (list! ctr-constraint) 'pass)))
                    (side-effect (loop for item in object-list 
                                       for i from 1 to (length object-list) do
                                       (setf (streamid item) i)
                                       )) 
-                   (full-constraint (replace-ctr-with-str constraint-list))
+                   (full-constraint (print (replace-ctr-with-str ctr-constraint)))
+                   ;(print "thefullconstraint")
+                   ;(print full-constraint)
                    (frame-list
                     (loop for item in object-list 
                           for i from 1 to (length object-list) collect
@@ -128,7 +135,7 @@
                            (make-instance 'sdifsid
                                           :id i
                                           :source (string+ "constraint-" (number-to-string i))
-                                          :treeway (format nil "~a ~a ~d ~d" (constraint item) (descriptor item) (order item) (streamid item)) ;reduce? ;(makestring (replace-ctr-with-str item))
+                                          :treeway (format nil "~s ~s ~d ~d" (constraint item) (descriptor item) (order item) (streamid item))
                                           )
                            
                            ; write SDIF frames
@@ -139,7 +146,7 @@
                                                     :ftime (car pair)
                                                     :StreamId i
                                                     :LMatrix (make-instance 'raw-sdifmatrix
-                                                                            :signature (print "XPCT")
+                                                                            :signature "XPCT"
                                                                             :data (list (second pair))
                                                                             )
                                                     )
@@ -147,9 +154,9 @@
                              (make-instance 'sdifframe
                                             :signature "XPCT"
                                             :ftime 0
-                                            :StreamId (print i)
+                                            :StreamId i
                                             :LMatrix  (make-instance 'raw-sdifmatrix
-                                                                            :signature (print "XPCT")
+                                                                            :signature "XPCT"
                                                                             :data (list (value item))
                                                                             )
                                             )
@@ -158,23 +165,21 @@
                    
                    ; write nvt
                    (nvt (make-instance 'sdifnvt
-                                       :nv-pairs (print (list (list "Fullconstraint" ;(format nil "(~a (~a ~a)" (first full-constraint) (second full-constraint) (third full-constraint)))))
-                                                                    (replace-string (itemtostring full-constraint) " , "))))
+                                       :nv-pairs (print (list (list "Fullconstraint" (replace-string (itemtostring full-constraint) " , "))))
                                        :tablename "Constraint"
                                        :id 0))
                    (transframes (mat-trans frame-list)))
-              
-              ; output
-              ;(list (x-append nvt (car transframes)) (flat (cdr transframes)))
-              
               (make-instance 'sdif-buffer
                              :types *pursuit-constraint-sdif-types*
                              :nvts (x-append *om-pursuit_default-nvt* nvt (car transframes))
                              :lframes (flat (cdr transframes))
                              )   
-              ;(format nil "(~a (~a,~a)" (first full-constraint) (second full-constraint) (third full-constraint)))
             ))
 
+
+(defmethod! ctr-compile ((ctr-constraint sgn-constraint))
+            (call-next-method)
+            )
 
 #|
 ; why can't I set the signature of an sdifmatrix?
