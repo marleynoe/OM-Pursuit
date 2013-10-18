@@ -14,19 +14,15 @@ class OMPursuitConstraint:
         #Will use this later to build the expression from the fullconstraint
         self.cString = constraintString
         self.cString = '(' + self.cString + ')'
-        print(self.cString)
 
-        operatorLookup = {'<' : operator.lt, '<=' : operator.le, '=' : operator.eq, '!=' : operator.ne, '>=' : operator.ge, '>' : operator.gt}
+        operatorLookup = {'<' : operator.lt, '<=' : operator.le, '==' : operator.eq, '!=' : operator.ne, '>=' : operator.ge, '>' : operator.gt}
 
         parsedConstraintString = re.split(' ', constraintString)
-        print(parsedConstraintString)
         self.cSignature = parsedConstraintString[1]
-        print(self.cSignature)
-
+        
         if parsedConstraintString[0] in operatorLookup.keys():
             self.cType = 'conditional'
             self.operator = operatorLookup[parsedConstraintString[0]]
-            print(self.operator)
 
         elif parsedConstraintString[0].lower() == 'w':
             self.cType = 'weight'
@@ -37,14 +33,11 @@ class OMPursuitConstraint:
         elif parsedConstraintString[0].isdigit():
             self.cType = 'k-nearest'
             self.kn = eval(parsedConstraintString[0])
-            print(self.kn)
 
         else:
             raise Exception        
 
         self.index = eval(parsedConstraintString[3])
-        print(self.index)
-        print(self.cType)
 
     def interpolatedValue(self, time, kind='linear'):
         f = interp1d(self.cTimes, self.cValues, kind=kind)
@@ -155,7 +148,7 @@ class OMPursuitCompoundConstraint:
         return(eval(tempString))
 
 
-    #TODO: refactor, many of these are duplicates of functions and are added for consistency 
+    #TODO: refactor, many of these are basically duplicates of functions from the operator module and are added for consistency 
     def andOMP(self, indices1, indices2):
         return operator.and_(indices1, indices2)
 
@@ -239,12 +232,13 @@ class OMPursuitDictionary:
 
         #the number of sound references  
         self.numRefs = len(streamRefs) 
-        
+
         #assign a lookup for soundgrains
         self.soundgrains = {}
         for i, sg in enumerate(streamRefs):
             self.soundgrains[i+1] = OMPursuitSoundgrain(sg.source, downsampleFactor)
-            
+            self.soundgrains[i+1].corpusID = eval(sg.treeway)
+ 
         #build the descriptor object (holds the raw data, might not need this as an attibute at a later stage...)
         #TODO: some of the frame types in the definition may not have data associated, so the table references should be built when reading the SDIF
         self.descriptorLookup = {}
@@ -314,3 +308,169 @@ class OMPursuitDictionary:
     def reinitWeights(self):
         for s in self.soundgrains.values():
             s.tempGain = 1.0    
+
+
+class OMPursuitSegSignal:
+
+    def signalSegment(self, timeinsec, length):
+        return self.signal[np.floor(timeinsec * self.samplerate) : np.floor(timeinsec * self.samplerate) + length]
+
+class OMPursuitTarget(OMPursuitSegSignal):
+    '''Data representation for a single sound file target'''
+
+    def __init__(self, soundfilePath, downsampleFactor):
+
+        sformats = {'.aif' : audiolab.aiffread, '.aiff' : audiolab.aiffread, '.wav' : audiolab.wavread}
+        readFunc = sformats[(os.path.splitext(soundfilePath)[1]).lower()]
+        x, fs, p = readFunc(os.path.expanduser(soundfilePath))
+
+        if len(np.shape(x)) > 1:
+            x = x[:, 0]
+
+        self.norm = linalg.norm(x)#the original norm, this is needed to do the rescaling later in OM
+        self.samplerate = fs            
+
+        if downsampleFactor > 1:
+            x = sig.resample(x, len(x)/downsampleFactor)
+            self.samplerate = fs / downsampleFactor
+        elif downsampleFactor < 1:
+            raise Exception("Upsampling not permitted")
+
+        self.signal = x
+
+    def signalSegment(self, timeinsec, length):
+        return self.signal[np.floor(timeinsec * self.samplerate) : np.floor(timeinsec * self.samplerate) + length]
+
+    def zeropadSignal(self, omdictionary, ommarkers):
+
+        newsig = np.zeros(np.ceil(np.max(ommarkers.times) * self.samplerate) + max([len(s.signal) for s in omdictionary.soundgrains.values()]))
+        newsig[0:len(self.signal)] = self.signal
+        self.signal =  newsig
+
+
+class OMPursuitMarkers:
+    def __init__(self, sdifPath):
+
+        sdifFile = pysdif.SdifFile(os.path.expanduser(sdifPath), 'r')
+        self.times = []
+        for frame in sdifFile:
+            '''
+            if frame.signature == 'XXXX':
+                for matrix in frame:
+                    self.times.append(matrix.get_data()[0])
+            else:
+                self.times.append(frame.time)'''
+            self.times.append(frame.time)
+        self.times = np.array(self.times)
+
+class OMPursuitModel(OMPursuitSegSignal):
+    def __init__(self, datatype, length, vectorlength, samplerate):
+        self.parameterArray = np.zeros(length, dtype=datatype)
+        self.signal = np.zeros(vectorlength)
+        self.samplerate = samplerate 
+
+class OMPursuitAnalysis:
+    def __init__(self, omdictionary, omcompoundconstraint, omtarget, ommarkers, maxtotal, mindistance, maxsimultaneous):
+
+        self.ompDictionary = omdictionary
+        self.ompCompoundConstraint = omcompoundconstraint
+        self.ompTarget = omtarget
+        self.ompMarkers = ommarkers
+
+        datatype = self.ompDictionary.soundgrains[1].averagedDescriptors.dtype.descr
+        datatype.append(('mtime', '<f8'))
+        datatype.append(('mcoef', '<f8'))
+        datatype.append(('mindex', int))
+        self.ompModel = OMPursuitModel(datatype, maxtotal, len(self.ompTarget.signal), self.ompTarget.samplerate)
+
+        #Analysis constraints
+        self.minSoundgrainDistance = mindistance
+        self.maxNumSimultaneousSoundgrains = maxsimultaneous
+        self.maxTotalSoundgrains = maxtotal
+     
+
+    def constrainedMP(self):
+
+        totalCount = 0
+        coefficients = np.zeros((len(self.ompMarkers.times), self.ompDictionary.len()))        
+        cindices = np.zeros((len(self.ompMarkers.times), self.ompDictionary.len()), dtype=int)
+        
+        while totalCount < self.maxTotalSoundgrains:
+            print('The current iteration index is %d'%totalCount)
+
+            #costly loop
+            for n, time in enumerate(self.ompMarkers.times):
+                #print('The solution to the full constraint for time %0.3f has length %d'%(time, len(self.ompCompoundConstraint.cFullConstraintFunction(self.ompDictionary, time))))
+                for index in self.ompCompoundConstraint.cFullConstraintFunction(self.ompDictionary, time):
+                    grain = self.ompDictionary.soundgrains[index].signal
+                    coef = np.inner(grain, self.ompTarget.signalSegment(time, len(grain)))
+                    if abs(coef) > coefficients[n, index-1]:
+                        coefficients[n, index-1] = coef
+                        cindices[n, index-1] = index
+
+                self.ompDictionary.reinitWeights()
+
+ 
+            validSoundgrain = False
+            scoefinds = np.argsort(abs(coefficients.flatten()))[::-1]
+            unravelShape = coefficients.shape
+            #print(len(scoefinds))
+
+            for ii, i_ in enumerate(scoefinds):
+
+                i = np.unravel_index(i_, unravelShape)#the 2d index that corresponds to the 1d sorted index
+                if int(cindices[i]) == 0:
+                    #print('Index %s is zero'%(i, ))
+                    continue
+
+                indexwhere = set(np.argwhere(self.ompModel.parameterArray['mindex'][0:totalCount] == cindices[i]).flatten())
+                timewhere = set(np.argwhere(abs(self.ompModel.parameterArray['mtime'][0:totalCount] - self.ompMarkers.times[i[0]]) < 0.0000000001).flatten())
+                #TODO: fix the costly loopfor situation when the compound constraint returns an empty set, means cindices will contain zeros
+                a = (len(timewhere) <= self.maxNumSimultaneousSoundgrains)
+                b = (indexwhere & timewhere == set([]))
+                #print(indexwhere)
+                #print(timewhere) 
+                #print(a, b)
+                if a and b:
+                    #print('The current max. coefficient index is %d'%ii)
+                    validSoundgrain = True
+
+                    #update the signal vectors
+                    grain = self.ompDictionary.soundgrains[cindices[i]].signal
+                    targseg = self.ompTarget.signalSegment(self.ompMarkers.times[i[0]], len(grain)) 
+                    targseg -= grain * coefficients[i]
+
+                    modseg = self.ompModel.signalSegment(self.ompMarkers.times[i[0]], len(grain))
+                    modseg += grain * coefficients[i]
+            
+                    #store the parameters
+                    for key in self.ompDictionary.soundgrains[cindices[i]].averagedDescriptors.dtype.names:
+                        self.ompModel.parameterArray[totalCount][key] = self.ompDictionary.soundgrains[cindices[i]].averagedDescriptors[key][0]
+
+                    self.ompModel.parameterArray[totalCount]['mtime'] = self.ompMarkers.times[i[0]]
+                    self.ompModel.parameterArray[totalCount]['mcoef'] = coefficients[i]
+                    self.ompModel.parameterArray[totalCount]['mindex'] = cindices[i]
+ 
+                    #update the count
+                    totalCount += 1
+            
+                    #remove the time points that violate the minimum distance constraint
+                    p = np.argwhere(abs(self.ompMarkers.times - self.ompMarkers.times[i[0]]) > self.minSoundgrainDistance).flatten()
+                    ntime = [self.ompMarkers.times[k] for k in p]
+                    ntime.append(self.ompMarkers.times[i[0]]) #don't exclude the current time point, i.e. simultaneous sgs 
+                    self.ompMarkers.times = np.sort(np.array(ntime))
+                    coefficients = np.zeros((len(self.ompMarkers.times), self.ompDictionary.len()))
+                    cindices = np.zeros((len(self.ompMarkers.times), self.ompDictionary.len()), dtype=int)
+
+                    break
+
+                #need to check for valid time points to update (only those that intersect with where the previous sg was removed (optimization)
+                
+            if not validSoundgrain:
+                print('No soundgrains satisfy the given constraints')
+                break
+
+            
+        
+        
+
