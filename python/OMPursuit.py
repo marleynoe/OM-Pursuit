@@ -9,7 +9,72 @@ import operator
 import time
 from scipy.interpolate import interp1d
 
-class OMPursuitConstraint:
+
+class OMPursuitAbstractConstraintContainer:
+    '''Abstract base class for constraint containers'''
+ 
+    def setConstraintValuesAndTimes(self): 
+
+        constraintValues = {i:[] for i in range(1, self.numConstraints+1)}
+        constraintTimes = {i:[] for i  in range(1, self.numConstraints+1)}
+
+        #read the frames from the sdif file
+        for frame in self.sdifFile:
+            constraintTimes[frame.id].append(frame.time)
+            for matrix in frame:  
+                constraintValues[frame.id].append(matrix.get_data()[0][0])
+
+        for key in constraintValues.keys():
+            self.constraints[key].cValues = np.array(constraintValues[key])
+            self.constraints[key].cTimes = np.array(constraintTimes[key])
+
+class OMPursuitAbstractConstraint:
+    '''Abstract base class for constraints'''
+
+    def interpolatedValue(self, time, kind='linear'):
+        try:
+            f = interp1d(self.cTimes, self.cValues, kind=kind)
+        except ValueError:
+            return self.cValues[0]
+
+        try:
+            x = f(time)
+        #if the time is outside of the range of the function, return the last value
+        except ValueError:
+            if time > self.cTimes[len(self.cValues)-1]:
+                x = self.cValues[len(self.cValues)-1]
+            elif time < self.cTimes[0]:
+                x = self.cValues[0]
+            else:
+                raise Exception
+        return x
+
+
+class OMPAnalysisConstraintSet(OMPursuitAbstractConstraintContainer):
+
+    def __init__(self, path):
+
+        self.sdifFile = pysdif.SdifFile(os.path.expanduser(path), 'r')
+        sc = self.sdifFile.get_stream_IDs()
+        self.constraints = {}
+
+        #initialize the appropriate objects
+        for i, constraint in enumerate(sc):
+            C = OMPursuitAnalysisConstraint(constraint.treeway)
+            self.constraints[i+1] = C
+
+        self.setConstraintValuesAndTimes()
+ 
+             
+class OMPAnalysisConstraint(OMPursuitAbstractConstraint):
+    def __init__(self, constraintString):
+        parsedConstraintString = re.split(' ', constraintString)
+        self.cSignature = parsedConstraintString[1]   
+
+
+class OMPursuitConstraint(OMPursuitAbstractConstraint):
+    '''Represents a set or vector calculation on the collection of available soundgrains'''
+
     def __init__(self, constraintString):
 
         #Will use this later to build the expression from the fullconstraint
@@ -39,25 +104,6 @@ class OMPursuitConstraint:
             raise Exception        
 
         self.index = eval(parsedConstraintString[3])
-
-    def interpolatedValue(self, time, kind='linear'):
-
-        try:
-            f = interp1d(self.cTimes, self.cValues, kind=kind)
-        except ValueError:
-            return self.cValues[0]
-
-        try:
-            x = f(time)
-        #if the time is outside of the range of the function, return the last value
-        except ValueError:
-            if time > self.cTimes[len(self.cValues)-1]:
-                x = self.cValues[len(self.cValues)-1]
-            elif time < self.cTimes[0]:
-                x = self.cValues[0]
-            else:
-                raise Exception
-        return x
 
     def cFunction(self, D, time):
         value = self.interpolatedValue(time)
@@ -93,23 +139,20 @@ class OMPursuitConstraint:
             return set(np.argsort(np.abs(q - value))[0:self.kn] + 1)
 
 
-class OMPursuitCompoundConstraint:
+class OMPursuitCompoundConstraint(OMPursuitAbstractConstraintContainer):
     '''Parse a constraint definition sdif and serve as a container for OMPusuitConstraint instances'''
 
     def __init__(self, constraintSdifPath):
 
-        sdifFile = pysdif.SdifFile(os.path.expanduser(constraintSdifPath), 'r')
-        sc = sdifFile.get_stream_IDs()
-
-        self.constraints = {}
-        self.operatorLookup = {'and ' : 'self.andOMP', 'or ' : 'self.orOMP', 'xor ': 'self.xorOMP', 'nand ' : 'self.nandOMP', 'nor ' : 'self.norOMP', 'xnor ' : 'self.xnorOMP', 'b ' : 'self.biasOMP', 'w ' : 'self.weightOMP'}
+        self.sdifFile = pysdif.SdifFile(os.path.expanduser(constraintSdifPath), 'r')
+        sc = self.sdifFile.get_stream_IDs()
         self.numConstraints = len(sc)
+        self.constraints = {}
 
-        constraintValues = [[] for i in range(self.numConstraints)]
-        constraintTimes = [[] for i in range(self.numConstraints)]        
-
+        self.operatorLookup = {'and ' : 'self.andOMP', 'or ' : 'self.orOMP', 'xor ': 'self.xorOMP', 'nand ' : 'self.nandOMP', 'nor ' : 'self.norOMP', 'xnor ' : 'self.xnorOMP', 'b ' : 'self.biasOMP', 'w ' : 'self.weightOMP'}
+        
         #obtain the full constraint expression
-        for nvt in sdifFile.get_NVTs():
+        for nvt in self.sdifFile.get_NVTs():
             if 'Fullconstraint' in nvt.keys():
                 self.fullConstraintString = nvt['Fullconstraint']
                 break
@@ -121,16 +164,7 @@ class OMPursuitCompoundConstraint:
             C = OMPursuitConstraint(constraint.treeway)
             self.constraints[i+1] = C
 
-        #read the frames from the sdif file
-        for frame in sdifFile:
-            constraintTimes[frame.id-1].append(frame.time)
-            for matrix in frame:  
-                constraintValues[frame.id-1].append(matrix.get_data()[0][0])
-
-        #add the times and values to the constraint 
-        for i in range(1, self.numConstraints+1):
-            self.constraints[i].cValues = np.array(constraintValues[i-1])
-            self.constraints[i].cTimes = np.array(constraintTimes[i-1])
+        self.setConstraintValuesAndTimes()
 
     def cFullConstraintFunction(self, D, time):
 
@@ -288,10 +322,17 @@ class OMPursuitDictionary:
         dtype.append(('XCRP', int))
         dtype.append(('XDUR', float))
         dtype.append(('time', float))
-        if 'XMDC' in self.soundgrains[1].globalValues.keys():
+        
+        allGlbs = []
+        for sgs in self.soundgrains.values():
+            for key in sgs.globalValues.keys():
+                if key not in allGlbs:
+                    allGlbs.append(key)
+
+        if 'XMDC' in allGlbs:
             dtype.append(('XMDC', int))
 
-        if 'XVEL' in self.soundgrains[1].globalValues.keys():
+        if 'XVEL' in allGlbs:
             dtype.append(('XVEL', int))
 
         for i in range(1, self.numRefs+1):
@@ -383,6 +424,7 @@ class OMPursuitMarkers:
             else:
                 self.times.append(frame.time)'''
             self.times.append(frame.time)
+
         self.times = np.array(self.times)
         self.times = self.times[np.argwhere(self.times >= 0.0).flatten()]#sanity check
 
@@ -391,6 +433,11 @@ class OMPursuitModel(OMPursuitSegSignal):
         self.parameterArray = np.zeros(length, dtype=datatype)
         self.signal = np.zeros(vectorlength)
         self.samplerate = samplerate 
+
+
+        
+        
+
 
 class OMPursuitAnalysis:
     def __init__(self, omdictionary, omcompoundconstraint, omtarget, ommarkers, maxtotal, mindistance, maxsimultaneous):
@@ -411,8 +458,9 @@ class OMPursuitAnalysis:
         self.maxNumSimultaneousSoundgrains = maxsimultaneous
         self.maxTotalSoundgrains = maxtotal
      
-
     def constrainedMP(self):
+
+        '''Matching Pursuit that considers constraints'''
 
         totalCount = 0
         coefficients = np.zeros((len(self.ompMarkers.times), self.ompDictionary.len()))        
@@ -426,8 +474,6 @@ class OMPursuitAnalysis:
                 #print('The solution to the full constraint for time %0.3f has length %d'%(time, len(self.ompCompoundConstraint.cFullConstraintFunction(self.ompDictionary, time))))
                 for index in self.ompCompoundConstraint.cFullConstraintFunction(self.ompDictionary, time):
                     grain = self.ompDictionary.soundgrains[index].signal
-                    #print(index, time)
-                    #print(len(grain), len(self.ompTarget.signalSegment(time, len(grain))))
                     coef = np.inner(grain, self.ompTarget.signalSegment(time, len(grain)))
                     if abs(coef) > coefficients[n, index-1]:
                         coefficients[n, index-1] = coef
@@ -435,7 +481,8 @@ class OMPursuitAnalysis:
 
                 self.ompDictionary.reinitWeights()
 
- 
+            #TODO:Here metaconstraints could be added, e.g. weight the coefficients based on polyphony (number of soundgrains at a location)
+
             validSoundgrain = False
             scoefinds = np.argsort(abs(coefficients.flatten()))[::-1]
             unravelShape = coefficients.shape
@@ -445,17 +492,15 @@ class OMPursuitAnalysis:
 
                 i = np.unravel_index(i_, unravelShape)#the 2d index that corresponds to the 1d sorted index
                 if int(cindices[i]) == 0:
-                    #print('Index %s is zero'%(i, ))
                     continue
 
                 indexwhere = set(np.argwhere(self.ompModel.parameterArray['mindex'][0:totalCount] == cindices[i]).flatten())
                 timewhere = set(np.argwhere(abs(self.ompModel.parameterArray['mtime'][0:totalCount] - self.ompMarkers.times[i[0]]) < 0.0000000001).flatten())
-                #TODO: fix the costly loopfor situation when the compound constraint returns an empty set, means cindices will contain zeros
+                #TODO: fix the costly loop for situation when the compound constraint returns an empty set, means cindices will contain zeros
                 a = (len(timewhere) <= self.maxNumSimultaneousSoundgrains)
                 b = (indexwhere & timewhere == set([]))
-                #print(indexwhere)
-                #print(timewhere) 
-                #print(a, b)
+                #need to resolve the dynamic constraints here
+            
                 if a and b:
                     #print('The current max. coefficient index is %d'%ii)
                     validSoundgrain = True
@@ -495,15 +540,13 @@ class OMPursuitAnalysis:
                 print('No soundgrains satisfy the given constraints')
                 break
 
-        
-
         self.ompModel.parameterArray = self.ompModel.parameterArray[0:totalCount]    
        
 
     def writeModelSdif(self, path):
 
-        iterationIndices = self.ompModel.parameterArray.argsort(order='time')
-        self.ompModel.parameterArray.sort(order='time')
+        iterationIndices = self.ompModel.parameterArray.argsort(order='mtime')
+        self.ompModel.parameterArray.sort(order='mtime')
 
         f = pysdif.SdifFile('%s'%os.path.expanduser(path), 'w')
         f.add_NVT({'Date' : time.asctime(time.localtime()), 'Tablename' : 'FileInfo', 'Author': 'OM-Pursuit v0.1 - G. Boyes, M. Schumacher'})
@@ -521,16 +564,16 @@ class OMPursuitAnalysis:
         f.add_matrix_type('XSGR', 'Amplitude-coefficient, MP-coefficient, Iteration-index')
 
         #add the stream references from the dictionary
-        #for ref in self.ompDictionary.streamRefs:
-            #f.add_streamID(ref.numid, ref.source, ref.treeway)
+        for ref in self.ompDictionary.streamRefs:
+            f.add_streamID(ref.numid, ref.source, ref.treeway)
 
-        refDict = {str(ref.numid):ref.source for ref in self.ompDictionary.streamRefs}
-        refDict['Tablename'] = 'FilePaths'
-        f.add_NVT(refDict)
+        #refDict = {str(ref.numid):ref.source for ref in self.ompDictionary.streamRefs}
+        #refDict['Tablename'] = 'FilePaths'
+        #f.add_NVT(refDict)
 
-        #add the global data
+        #add the global data for the soundgrains in the model
         normLkp = {}
-        for key in self.ompDictionary.soundgrains.keys():
+        for key in (set(self.ompDictionary.soundgrains.keys()) & set(np.unique(self.ompModel.parameterArray['mindex']))):
             sg = self.ompDictionary.soundgrains[key]
             for mkey in sg.globalValues:
                 frame = f.new_frame('XGLB', 0.0, key)
@@ -543,7 +586,7 @@ class OMPursuitAnalysis:
 
         #add the time-varying analysis data
         for i, row in enumerate(self.ompModel.parameterArray):
-             frame = f.new_frame('XSGR', row['time'], row['mindex'])
+             frame = f.new_frame('XSGR', row['mtime'], row['mindex'])
              frame.add_matrix('XSGR', np.array([[1.0 / normLkp[row['mindex']] * row['mcoef']], [row['mcoef']], [iterationIndices[i]]]))
              frame.write()
 

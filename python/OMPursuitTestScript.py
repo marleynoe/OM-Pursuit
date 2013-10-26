@@ -5,14 +5,14 @@ import matplotlib.pyplot as plt
 import scikits.audiolab as audiolab
 
 dsfactor = 1
-maxit = 400
+maxit = 1000
 mindist = 0.0
-maxsimul = 10
+maxsimul = 100
 
-paths = ['/Users/geb/Research/OM-Pursuit/dictionaries/Breakbeats.dict.sdif', '/Users/geb/Research/OM-Pursuit/dictionaries/Breakbeats.dict.sdif', '/Users/geb/Research/OM-Pursuit/dictionaries/strings+benvibes.dict.sdif', '/Users/geb/Research/OM-Pursuit/dictionaries/Percussion.dict.sdif']
-constraintPaths = ['/Users/geb/Research/OM-Pursuit/constraints/generic', '/Users/geb/Research/OM-Pursuit/constraints/generic', '/Users/geb/Research/OM-Pursuit/constraints/generic', '/Users/geb/Research/OM-Pursuit/constraints/generic']
-targetPaths = ['/Users/geb/Research/OM-Pursuit/target/voix-femme/voix-femme.wav', '/Users/geb/Research/OM-Pursuit/target/rally/Rally.aif', '/Users/geb/Research/OM-Pursuit/target/rally/Rally.aif', '/Users/geb/Research/OM-Pursuit/target/rally/Rally.aif']
-markerPaths = ['/Users/geb/Research/OM-Pursuit/target/voix-femme/voix-femme2.mrk.sdif', '/Users/geb/Research/OM-Pursuit/target/rally/Rally-mrk3.sdif' , '/Users/geb/Research/OM-Pursuit/target/rally/Rally-mrk3.sdif', '/Users/geb/Research/OM-Pursuit/target/rally/Rally-mrk3.sdif']
+paths = ['/Users/geb/Research/OM-Pursuit/dictionaries/Benvibes-inclmidi.dict.sdif', '/Users/geb/Research/OM-Pursuit/dictionaries/strings+benvibes.dict.sdif']
+constraintPaths = ['/Users/geb/Research/OM-Pursuit/constraints/generic', '/Users/geb/Research/OM-Pursuit/constraints/generic']
+targetPaths = ['/Users/geb/Research/OM-Pursuit/target/harley/Harley2.aif', '/Users/geb/Research/OM-Pursuit/target/harley/Harley2.aif']
+markerPaths = ['/Users/geb/Research/OM-Pursuit/target/harley/Harley2-mrk.sdif', '/Users/geb/Research/OM-Pursuit/target/harley/Harley2-mrk.sdif']
 
 for i, path in enumerate(paths):
 
@@ -30,11 +30,11 @@ for i, path in enumerate(paths):
             target = OMPursuit.OMPursuitTarget(targetPaths[i], dsfactor)
             target.zeropadSignal(D, markers)
 
-            #omdictionary, omcompoundconstraint, omtarget, ommarkers, maxtotal, mindistance, maxsimultaneous)
             A = OMPursuit.OMPursuitAnalysis(D, C, target, markers, maxit, mindist, maxsimul)
             A.constrainedMP()
             audiolab.aiffwrite(A.ompModel.signal, os.path.expanduser(outpath + '-%d.aif'%ci), A.ompModel.samplerate)
 
+            #log the analysis data
             f = open(os.path.expanduser(outpath + '-%d.txt'%ci), 'w')
             f.write('Dictionary : %s\n'%path)
             f.write('Constraint : %s\n'%constraint)
@@ -46,4 +46,3 @@ for i, path in enumerate(paths):
             f.close()
 
             A.writeModelSdif(outpath + '-%d.sdif'%ci)
-            #print(A.ompModel.parameterArray)

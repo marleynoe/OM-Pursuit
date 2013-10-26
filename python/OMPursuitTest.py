@@ -4,39 +4,39 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scikits.audiolab as audiolab
 
-#path = '~/Research/OM-Pursuit/dictionaries/Benvibes-inclmidi.dict.sdif'
+path = '~/Research/OM-Pursuit/dictionaries/Benvibes-inclmidi.dict.sdif'
 #path = '~/Research/OM-pursuit/dictionaries/Percussion.dict.sdif'
 #path = '~/Research/OM-pursuit/dictionaries/Breakbeats-separate.dict.sdif'
-path = '~/Research/OM-pursuit/dictionaries/Breakbeats.dict.sdif'
+#path = '~/Research/OM-pursuit/dictionaries/Breakbeats.dict.sdif'
 #path = '~/Research/OM-pursuit/dictionaries/strings.dict.sdif'
 #path = '~/Research/OM-pursuit/dictionaries/strings+benvibes.dict.sdif'
 
+constraint_path = '/Users/geb/Research/OM-Pursuit/constraints/harm_fof-symbolic'
 
-constraint_path = '~/Research/OM-Pursuit/constraints/fof-synth/FOF-3'
-
-#targetPath = '~/Research/OM-Pursuit/target/harm_fof/harm_fof.wav'
+targetPath = '~/Research/OM-Pursuit/target/harm_fof/harm_fof.wav'
 #targetPath = '~/Research/OM-Pursuit/target/drumloop/drumLoop_mono.aif' 
 #targetPath = '~/Research/OM-Pursuit/target/harley/Harley2.aif'
-targetPath = '~/Research/OM-Pursuit/target/fof-synth/FOF-3/FOF-synth-3.aiff'
+#targetPath = '~/Research/OM-Pursuit/target/fof-synth/FOF-3/FOF-synth-3.aiff'
 
-#markerPath = '~/Research/OM-Pursuit/target/harm_fof/harm_fof-f0peaks.mrk.sdif' 
+markerPath = '~/Research/OM-Pursuit/target/harm_fof/harm_fof-f0peaks.mrk.sdif' 
 #markerPath = '~/Research/OM-Pursuit/target/harm_fof/harm_fof.mrk.sdif'
 #markerPath = '~/Research/OM-Pursuit/target/drumloop/drumLoop_mono.mrk.sdif'
 #markerPath = '~/Research/OM-Pursuit/target/harley/Harley2-mrk.sdif'
-markerPath = '~/Research/OM-Pursuit/target/fof-synth/FOF-3/fof-synth-3-gauss.mrk.sdif'
+#markerPath = '~/Research/OM-Pursuit/target/fof-synth/FOF-3/fof-synth-3-gauss.mrk.sdif'
 
 dsfactor = 1
-maxit = 10
+maxit = 500
 mindist = 0.0
 maxsimul = 50
 
-D = OMPursuit.OMPursuitDictionary(path, dsfactor)
 markers = OMPursuit.OMPursuitMarkers(markerPath)
 
 for ci, constraint in enumerate(os.listdir(os.path.expanduser(constraint_path))):
+
     if os.path.splitext(constraint)[1].lower() == '.sdif':
 
         print(constraint)
+        D = OMPursuit.OMPursuitDictionary(path, dsfactor)
 
         C = OMPursuit.OMPursuitCompoundConstraint(constraint_path + '/' + constraint)
         target = OMPursuit.OMPursuitTarget(targetPath, dsfactor)
