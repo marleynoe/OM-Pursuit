@@ -29,7 +29,6 @@
 
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-(compile&load (om-relative-path '("sources") "superclasses" ))
 
 (defun recursive-load-classes (dir &optional pack)
   (loop for item in (om-directory dir) do
@@ -42,44 +41,40 @@
         (when (string-equal (pathname-type item) "lisp")
           (load item)
           (addclass2pack (intern (string-upcase (pathname-name item))) pack)))))
-   
-(recursive-load-classes (om-relative-path '("sources" "classes") nil) *current-lib*)
                  
 (defparameter *om-pursuit-lib-path* (make-pathname :directory (pathname-directory *load-pathname*)))
 
-
+(mapcar #'(lambda (file) (compile&load (om-relative-path '("sources" "classes") file)))
+        '(
+          "superclasses"
+          "sgn-constraint"
+          "score-array"
+          "sgn-array"
+          "soundgrain-matrix"
+          ))
 
 (mapcar #'(lambda (file) (compile&load (om-relative-path '("sources") file )))
         '(
-          "preferences"
+          "preferences"         
           "file-io"
           "editors"
           "array-tools"
           "dispatch-cseq"
-          "gabor"
-          "fof"
-          "soundgrain-decomp"
-          "sgntv"
-          "sgnct"
-          "partials"
           "score-tools"
           "SDIF-tools"
           "ircamdescriptors"
           "statistics"
           "utilities"
-          "array-2-atoms"
           "make-dictionary"
+          "constraints"
           ))
 
+
+
+
 (om::fill-library '(
-                    ;("Fof" (
-                    ;              (nil nil nil (fof-params fof-decomp get-fof-params get-fof-array get-fof-array-resamp) nil)))
-                    ;("Gabor" (
-                    ;              (nil nil nil (gabor-params gabor-decomp get-gabor-params get-gabor-array get-gabor-array-resamp) nil)))
                     ("Soundgrain" (
-                                  (nil nil nil (sgn-params sgn-decomp get-sgn-params get-sgn-array get-sgn-array-resamp) nil)))
-                    ;("Soundgrain-labeled" (
-                    ;              (nil nil nil (sgl-params sgl-decomp get-sgl-params get-sgl-array get-sgl-array-resamp) nil)))                  
+                                  (nil nil nil (sgn-params sgn-decomp get-sgn-params get-sgn-array get-sgn-array-resamp) nil)))             
                     ("Array-tools" (
                                   ("array" nil nil (process-array array-vals array-rep-filter) nil)
                                   ("component" nil nil (process-array-comp get-comp-vals comp-quantize field-quantize comp-perturbation field-perturbation comp-bandfilter) nil)
@@ -92,9 +87,9 @@
          
 ;(sub-pack-name subpack-lists class-list function-list class-alias-list)
 
-;(setq *my-bg-pict* (om-load-and-store-picture "dibox" 'omato))
 
-
+(defmethod get-fonde-pict ((self soundgrain-matrix)) *pursuit-bg-pict*)
+(setq *pursuit-bg-pict* (om-load-and-store-picture "dibox" 'om-pursuit))
 
 ; Version control
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -105,10 +100,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; generate html reference
 ; (gen-lib-reference "OM-Pursuit")
+
 ; before distribution
 ; (clean-repo *om-pursuit-lib-path*) 
 
-(set-lib-release 1.0) 
+; (set-lib-release 1.0) this doesn't work!
 
 (defun clean-repo (&optional dir)
   (let ((src-root (or dir (make-pathname :directory (butlast (pathname-directory *load-pathname*) 2)))))
@@ -136,6 +132,8 @@
           (directory (namestring src-root) :directories t))))
     ))
 
+#|
+; SPLASH SCREEN
 (om-message-dialog 
 "===========================
                   OM-Pursuit v1.0beta
@@ -153,33 +151,18 @@
 :size (om-make-point 360 200) 
 :position (om-make-point 200 140)
 )
-
-;https://github.com/marleynoe/OM-Pursuit
-
-(print "
-
-;************************************************
-;                  OM-PURSUIT                   *
-; Dictionary-based Sound Modelling in OpenMusic *
-;                                               *
-;       (c) 2011-2013 Marlon Schumacher         *
-;    https://github.com/marleynoe/OM-Pursuit    *
-;                                               *
-;     DSP based on pydbm - (c) Graham Boyes     *
-;        https://github.com/gboyes/pydbm        *
-;************************************************
-")
-
-#|
-(print "
-
-;************************************************
-; OM-PURSUIT, (c) 2011-2013 Marlon Schumacher   *
-; Dictionary-based sound modelling in OpenMusic *
-;    https://github.com/marleynoe/OM-Pursuit    *
-;                                               *
-;     DSP based on pydbm - (c) Graham Boyes     *
-;       https://github.com/gboyes/pydbm         *
-;************************************************
-")
 |#
+
+(format *om-stream* "
+
+   *************************************************
+   *                  OM-PURSUIT                   *
+   * Dictionary-based Sound Modelling in OpenMusic *
+   *                                               *
+   *       (c) 2011-2013 Marlon Schumacher         *
+   *    https://github.com/marleynoe/OM-Pursuit    *
+   *                                               *
+   *     DSP based on pydbm - (c) Graham Boyes     *
+   *        https://github.com/gboyes/pydbm        *
+   *************************************************
+")

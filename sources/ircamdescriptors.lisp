@@ -25,6 +25,7 @@
 
 
 (defmethod! ircamdescriptors ((path-to-exec pathname) (path-to-audio pathname) (path-to-config pathname))
+            :icon 30
             (let* ((exepath (namestring path-to-exec))
                   (audiopath (namestring path-to-audio))
                   (configpath (namestring path-to-config))

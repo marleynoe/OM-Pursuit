@@ -37,7 +37,7 @@
 
 ;=== Converts an item into a string
 (defun itemtostring (anything)
-  (format nil "~s" anything)
+  (format nil "~a" anything) ; was ~s
     )
 
 ;%%%%%%%%%%%%%% PLOTTING FUNCTIONS %%%%%%%%%%%%%%%

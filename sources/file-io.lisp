@@ -22,7 +22,7 @@
 
 ;%%%%%%%%%%%%%% FILE I/O FUNCTIONS %%%%%%%%%%%%%%%
 
-
+#|
 (defmethod! in-directory (&key (unix nil))
               :icon '(250)
               :indoc '("unix format")
@@ -31,7 +31,7 @@
                 (if unix
                     (namestring path)
                   path)))
-
+|#
 
 (defmethod! in-directories (&key (unix nil) (recursive nil))
               :icon '(250)

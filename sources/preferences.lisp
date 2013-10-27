@@ -120,7 +120,7 @@
 ; %%%%%%%%%%%%% SGN DECOMP %%%%%%%%%%%%%%%%%
 
 (defvar *SGN-PATH* "path to SGNDecomp")
-
+#|
 (add-external-pref-module 'sgn)
 
 (defmethod get-external-name ((module (eql 'sgn))) "Sgn")
@@ -236,3 +236,5 @@
       (om-cmd-line (format nil "chmod 777 ~s" (namestring *mdc-path*)) t))))
 
 (put-external-pref-values 'mdc)
+
+|#
