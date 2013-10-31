@@ -4,9 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scikits.audiolab as audiolab
 
-path = '~/Research/OM-Pursuit/dictionaries/Benvibes-inclmidi.dict.sdif'
+#path = '~/Research/OM-Pursuit/dictionaries/Benvibes-inclmidi.dict.sdif'
 #path = '~/Research/OM-pursuit/dictionaries/Percussion.dict.sdif'
-#path = '~/Research/OM-pursuit/dictionaries/Breakbeats-separate.dict.sdif'
+path = '~/Research/OM-pursuit/dictionaries/Breakbeats-separate.dict.sdif'
 #path = '~/Research/OM-pursuit/dictionaries/Breakbeats.dict.sdif'
 #path = '~/Research/OM-pursuit/dictionaries/strings.dict.sdif'
 #path = '~/Research/OM-pursuit/dictionaries/strings+benvibes.dict.sdif'
@@ -25,7 +25,7 @@ markerPath = '~/Research/OM-Pursuit/target/harm_fof/harm_fof-f0peaks.mrk.sdif'
 #markerPath = '~/Research/OM-Pursuit/target/fof-synth/FOF-3/fof-synth-3-gauss.mrk.sdif'
 
 dsfactor = 1
-maxit = 10
+maxit = 500
 mindist = 0.0
 maxsimul = 50
 

@@ -9,7 +9,72 @@ import operator
 import time
 from scipy.interpolate import interp1d
 
-class OMPursuitConstraint:
+
+class OMPursuitAbstractConstraintContainer:
+    '''Abstract base class for constraint containers'''
+ 
+    def setConstraintValuesAndTimes(self): 
+
+        constraintValues = {i:[] for i in range(1, self.numConstraints+1)}
+        constraintTimes = {i:[] for i  in range(1, self.numConstraints+1)}
+
+        #read the frames from the sdif file
+        for frame in self.sdifFile:
+            constraintTimes[frame.id].append(frame.time)
+            for matrix in frame:  
+                constraintValues[frame.id].append(matrix.get_data()[0][0])
+
+        for key in constraintValues.keys():
+            self.constraints[key].cValues = np.array(constraintValues[key])
+            self.constraints[key].cTimes = np.array(constraintTimes[key])
+
+class OMPursuitAbstractConstraint:
+    '''Abstract base class for constraints'''
+
+    def interpolatedValue(self, time, kind='linear'):
+        try:
+            f = interp1d(self.cTimes, self.cValues, kind=kind)
+        except ValueError:
+            return self.cValues[0]
+
+        try:
+            x = f(time)
+        #if the time is outside of the range of the function, return the last value
+        except ValueError:
+            if time > self.cTimes[len(self.cValues)-1]:
+                x = self.cValues[len(self.cValues)-1]
+            elif time < self.cTimes[0]:
+                x = self.cValues[0]
+            else:
+                raise Exception
+        return x
+
+
+class OMPAnalysisConstraintSet(OMPursuitAbstractConstraintContainer):
+
+    def __init__(self, path):
+
+        self.sdifFile = pysdif.SdifFile(os.path.expanduser(path), 'r')
+        sc = self.sdifFile.get_stream_IDs()
+        self.constraints = {}
+
+        #initialize the appropriate objects
+        for i, constraint in enumerate(sc):
+            C = OMPursuitAnalysisConstraint(constraint.treeway)
+            self.constraints[i+1] = C
+
+        self.setConstraintValuesAndTimes()
+ 
+             
+class OMPAnalysisConstraint(OMPursuitAbstractConstraint):
+    def __init__(self, constraintString):
+        parsedConstraintString = re.split(' ', constraintString)
+        self.cSignature = parsedConstraintString[1]   
+
+
+class OMPursuitConstraint(OMPursuitAbstractConstraint):
+    '''Represents a set or vector calculation on the collection of available soundgrains'''
+
     def __init__(self, constraintString):
 
         #Will use this later to build the expression from the fullconstraint
@@ -39,25 +104,6 @@ class OMPursuitConstraint:
             raise Exception        
 
         self.index = eval(parsedConstraintString[3])
-
-    def interpolatedValue(self, time, kind='linear'):
-
-        try:
-            f = interp1d(self.cTimes, self.cValues, kind=kind)
-        except ValueError:
-            return self.cValues[0]
-
-        try:
-            x = f(time)
-        #if the time is outside of the range of the function, return the last value
-        except ValueError:
-            if time > self.cTimes[len(self.cValues)-1]:
-                x = self.cValues[len(self.cValues)-1]
-            elif time < self.cTimes[0]:
-                x = self.cValues[0]
-            else:
-                raise Exception
-        return x
 
     def cFunction(self, D, time):
         value = self.interpolatedValue(time)
@@ -93,23 +139,20 @@ class OMPursuitConstraint:
             return set(np.argsort(np.abs(q - value))[0:self.kn] + 1)
 
 
-class OMPursuitCompoundConstraint:
+class OMPursuitCompoundConstraint(OMPursuitAbstractConstraintContainer):
     '''Parse a constraint definition sdif and serve as a container for OMPusuitConstraint instances'''
 
     def __init__(self, constraintSdifPath):
 
-        sdifFile = pysdif.SdifFile(os.path.expanduser(constraintSdifPath), 'r')
-        sc = sdifFile.get_stream_IDs()
-
-        self.constraints = {}
-        self.operatorLookup = {'and ' : 'self.andOMP', 'or ' : 'self.orOMP', 'xor ': 'self.xorOMP', 'nand ' : 'self.nandOMP', 'nor ' : 'self.norOMP', 'xnor ' : 'self.xnorOMP', 'b ' : 'self.biasOMP', 'w ' : 'self.weightOMP'}
+        self.sdifFile = pysdif.SdifFile(os.path.expanduser(constraintSdifPath), 'r')
+        sc = self.sdifFile.get_stream_IDs()
         self.numConstraints = len(sc)
+        self.constraints = {}
 
-        constraintValues = [[] for i in range(self.numConstraints)]
-        constraintTimes = [[] for i in range(self.numConstraints)]        
-
+        self.operatorLookup = {'and ' : 'self.andOMP', 'or ' : 'self.orOMP', 'xor ': 'self.xorOMP', 'nand ' : 'self.nandOMP', 'nor ' : 'self.norOMP', 'xnor ' : 'self.xnorOMP', 'b ' : 'self.biasOMP', 'w ' : 'self.weightOMP'}
+        
         #obtain the full constraint expression
-        for nvt in sdifFile.get_NVTs():
+        for nvt in self.sdifFile.get_NVTs():
             if 'Fullconstraint' in nvt.keys():
                 self.fullConstraintString = nvt['Fullconstraint']
                 break
@@ -121,16 +164,7 @@ class OMPursuitCompoundConstraint:
             C = OMPursuitConstraint(constraint.treeway)
             self.constraints[i+1] = C
 
-        #read the frames from the sdif file
-        for frame in sdifFile:
-            constraintTimes[frame.id-1].append(frame.time)
-            for matrix in frame:  
-                constraintValues[frame.id-1].append(matrix.get_data()[0][0])
-
-        #add the times and values to the constraint 
-        for i in range(1, self.numConstraints+1):
-            self.constraints[i].cValues = np.array(constraintValues[i-1])
-            self.constraints[i].cTimes = np.array(constraintTimes[i-1])
+        self.setConstraintValuesAndTimes()
 
     def cFullConstraintFunction(self, D, time):
 
@@ -400,27 +434,8 @@ class OMPursuitModel(OMPursuitSegSignal):
         self.signal = np.zeros(vectorlength)
         self.samplerate = samplerate 
 
-class OMPAnalysisConstraint():
-    def __init__(self, path):
-        sdifFile = pysdif.SdifFile(os.path.expanduser(path), 'r')
-        self.constraints = {}
-        self.times = {}
+
         
-        for frame in sdifFile:
-            for matrix in frame:
-                if matrix.signature not in self.constraints.keys():
-                    self.constraints[matrix.signature] = []
-                if matrix.signature not in self.times.keys():
-                    self.times[matrix.signature] = []
-
-                self.constraints[matrix.signature].append(matrix.get_data()[0][0])           
-                self.times[matrix.signature].append(frame.time)
-
-        for key in self.constraints.keys():
-            n = len(self.constraints[key])
-            if key == 'XMSA':
-                self.maxSimultaneousAtoms = np.zeros(n, dtype=[('value', float), ('time', float)])
-
         
 
 

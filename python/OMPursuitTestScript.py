@@ -4,15 +4,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scikits.audiolab as audiolab
 
-dsfactor = 1
+dsfactor = 4
 maxit = 1000
 mindist = 0.0
-maxsimul = 100
+maxsimul = 1000
 
-paths = ['/Users/geb/Research/OM-Pursuit/dictionaries/Benvibes-inclmidi.dict.sdif', '/Users/geb/Research/OM-Pursuit/dictionaries/strings+benvibes.dict.sdif']
-constraintPaths = ['/Users/geb/Research/OM-Pursuit/constraints/generic', '/Users/geb/Research/OM-Pursuit/constraints/generic']
-targetPaths = ['/Users/geb/Research/OM-Pursuit/target/harley/Harley2.aif', '/Users/geb/Research/OM-Pursuit/target/harley/Harley2.aif']
-markerPaths = ['/Users/geb/Research/OM-Pursuit/target/harley/Harley2-mrk.sdif', '/Users/geb/Research/OM-Pursuit/target/harley/Harley2-mrk.sdif']
+paths = ['/Users/geb/Research/OM-Pursuit/dictionaries/Benvibes-inclmidi.dict.sdif']
+constraintPaths = ['/Users/geb/Research/OM-Pursuit/constraints/harm_fof-symbolic']
+targetPaths = ['/Users/geb/Research/OM-Pursuit/target/harm_fof/harm_fof.wav']
+markerPaths = ['/Users/geb/Research/OM-Pursuit/target/harm_fof/harm_fof.mrk.sdif']
 
 for i, path in enumerate(paths):
 
