@@ -27,7 +27,7 @@ markerPath = '~/Research/OM-Pursuit/target/harm_fof/harm_fof.mrk.sdif'
 mpconstrPath = '/Users/geb/Research/OM-Pursuit/constraints/new-mp-constraints/maxatoms-and-corpatoms-and-mindistance.glmpctr.sdif'
 
 dsfactor = 1
-maxit = 50
+maxit = 250
 
 for ci, constraint in enumerate(os.listdir(os.path.expanduser(constraint_path))):
 
@@ -56,6 +56,7 @@ for ci, constraint in enumerate(os.listdir(os.path.expanduser(constraint_path)))
         f.close()
 
         A.writeModelSdif('~/Research/OM-Pursuit/output/FOF3%d.sdif'%ci)
+        print('here')
 
 
         #print(A.ompModel.parameterArray)

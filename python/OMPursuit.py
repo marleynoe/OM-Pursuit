@@ -266,10 +266,10 @@ class OMPursuitDictionary:
     def __init__(self, sdifPath, downsampleFactor):
 
         #obtain the sdif file object
-        sdifFile = pysdif.SdifFile(os.path.expanduser(sdifPath), 'r')
+        self.sdifFile = pysdif.SdifFile(os.path.expanduser(sdifPath), 'r')
         
         #obtain the references to the streams in sdifFile
-        self.streamRefs = sdifFile.get_stream_IDs()
+        self.streamRefs = self.sdifFile.get_stream_IDs()
 
         #the number of sound references  
         self.numRefs = len(self.streamRefs) 
@@ -286,7 +286,7 @@ class OMPursuitDictionary:
         self.descriptorLookup = {}
         for i in range(1, self.numRefs+1):
             self.descriptorLookup[i] = {}
-            for ft in sdifFile.get_frame_types():
+            for ft in self.sdifFile.get_frame_types():
                 self.descriptorLookup[i][ft.signature]  = {}
                 for component in ft.components:
                     self.descriptorLookup[i][ft.signature][component.signature] = {}
@@ -299,7 +299,7 @@ class OMPursuitDictionary:
             g.globalValues = {}
 
         #read the descriptor values from the sdif and fill the lookup table
-        for frame in sdifFile:
+        for frame in self.sdifFile:
             for matrix in frame:
                 if frame.signature == 'XGLB':
                     self.soundgrains[frame.id].globalValues[matrix.signature] = (matrix.get_data()[0])[0]
@@ -593,10 +593,11 @@ class OMPursuitAnalysis:
         #the amplitude is 1./ norm * mp-coef 
         f.add_matrix_type('XSGR', 'Amplitude-coefficient, MP-coefficient, Iteration-index')
 
+        
         #add the stream references from the dictionary
-        for ref in self.ompDictionary.streamRefs:
+        for ref in self.ompDictionary.sdifFile.get_stream_IDs():
             f.add_streamID(ref.numid, ref.source, ref.treeway)
-
+           
         #refDict = {str(ref.numid):ref.source for ref in self.ompDictionary.streamRefs}
         #refDict['Tablename'] = 'FilePaths'
         #F.Add_NVT(refDict)
