@@ -122,7 +122,8 @@ See http://sdif.sourceforge.net/standard/sdif-standard.html#Stream%20IDs%20Table
                                                      (first streams)) (sdifstreams sdiffile)) 'eq 1))
   )
 
-(defmethod! get-soundgrain-data ((self sdiffile) &optional mintime maxtime)
+; this function gets the model-data from an SDIFfile
+(defmethod! get-pursuit-data ((self sdiffile) &optional mintime maxtime)
             :icon 04
             :numouts 8
             :outdoc '("numatoms" "onset" "duration" "amplitude" "file-index" "corpus-index" "iteration-id" "filepath")
@@ -147,7 +148,7 @@ See http://sdif.sourceforge.net/standard/sdif-standard.html#Stream%20IDs%20Table
                    ;(themergeddata (regroup-frames theglobaldata thesgrdata))
               ; (file-index duration crp-id path onset amplitude magn. iteration-index)
                    (thetransdata (mat-trans themergeddata)))
-              (values (length themergeddata)
+              (values (length thetransdata)
                       (fifth thetransdata) ; onset
                       (second thetransdata) ; duration
                       (sixth thetransdata) ; amplitude
@@ -157,6 +158,139 @@ See http://sdif.sourceforge.net/standard/sdif-standard.html#Stream%20IDs%20Table
                       (fourth thetransdata)
                       )))
 
+(defmethod! get-pursuit-data-list ((self sdiffile) &optional mintime maxtime)
+            :icon 04
+            :numouts 1
+            :outdoc '("numatoms" "onset" "duration" "amplitude" "file-index" "corpus-index" "iteration-id" "filepath")
+            
+            (let* ((thestreams (pursuit-sdif-streams self))
+                   (thepaths (pursuit-sid-paths self thestreams))
+                   (theglobaldata 
+                    (loop for stream in thestreams 
+                          for path in thepaths collect
+                          (x-append
+                           stream                           
+                           (flat (getsdifdata self stream "XGLB" "XDUR" 0 nil nil nil nil))
+                           (om-round (flat (getsdifdata self stream "XGLB" "XCRP" 0 nil nil nil nil)))
+                           path
+                          )))
+                   (thesgrdata
+                    (loop for stream in thestreams collect
+                           (mat-trans (reverse (multiple-value-list  
+                                  (getsdifdata self stream "XSGR" "XSGR" 0 nil nil nil nil)))))
+                          )
+                   (themergeddata (sort-list (regroup-frames theglobaldata thesgrdata) :test '< :key 'fifth))
+                   (thetransdata (mat-trans themergeddata)))
+              thetransdata ;note, this is 'unsorted', thus: (file-index duration crp-id path onset amplitude magn. iteration-index)
+              ))
+
+
+(defun regroup-frames (glblist sgrlist)
+  (flat (loop for glbitem in glblist
+        for sgritem in sgrlist collect
+        (loop for subsgritem in sgritem collect
+              (flat (x-append glbitem subsgritem))
+              )
+        ) 1)
+  )
+
+(defmethod! model-to-matrix ((self sdiffile))
+            :icon 04
+            :numouts 1
+            :outdoc '("soundgrain-matrix")
+            :doc "Converts an OM-Pursuit model represented in an SDIF into a soundgrain-matrix class"
+            
+            (let ((soundgrain-datalist (get-pursuit-data-list self)))
+              (make-instance 'soundgrain-matrix
+                             :numcols (length (first soundgrain-datalist))
+                             :onset (fifth soundgrain-datalist)
+                             :duration (second soundgrain-datalist)
+                             :amplitude (sixth soundgrain-datalist)
+                             :file-index (first soundgrain-datalist)
+                             :corpus-index (third soundgrain-datalist)
+                             :iteration-id (om-round (nth 7 soundgrain-datalist))
+                             :filepath (fourth soundgrain-datalist))
+                             )
+              )
+
+
+(defmethod objfromobjs ((self sdiffile) (type soundgrain-matrix))
+  (model-to-matrix self)
+  )
+
+(defmethod objfromobjs ((self soundgrain-matrix) (type smpl-linear))
+  (make-instance 'smpl-linear
+                 :numcols (numcols self)
+                 :e-dels (onset self)
+                 :durs (duration self)
+                 :amp (amplitude self)
+                 :afil (filepath self)
+                 :aenv (simple-bpf-from-list '(0 100) '(1000 1000) 'bpf 10)
+                 )
+  )
+
+(defmethod objfromobjs ((self soundgrain-matrix) (type smpl-1))
+  (make-instance 'smpl-1
+                 :numcols (numcols self)
+                 :e-dels (onset self)
+                 :durs (duration self)
+                 :amp (print (om* (om-abs (amplitude self)) 1000))
+                 :afil (filepath self)
+                 :aenv (simple-bpf-from-list '(0 100) '(1000 1000) 'bpf 10)
+                 )
+  )
+
+;this is very slow !!! WHY??
+(defmethod! get-descriptor-data ((self sdiffile) (streamnumber number) (descriptor string))
+            :icon 639
+            :indoc '("nothing" "nothing" "nothing")
+            :initvals '(nil nil nil)
+            (if (find descriptor '("XDUR" "XCRP" "XMDC" "XVEL") :test 'equal)
+                (flat (getsdifdata self streamnumber "XGLB" descriptor nil nil nil nil nil))
+               (flat (getsdifdata self streamnumber "1WMN" descriptor nil nil nil nil nil))
+              ))
+
+(defmethod! get-descriptor-data ((self sdiffile) (streamnumber list) (descriptor string))
+            (flat (mapcar (lambda (thestreams)
+                      (get-descriptor-data self thestreams descriptor)) streamnumber))
+            )
+
+#|      
+(defmethod! modify-slot ((self soundgrain-matrix) (slot symbol) (value t))
+            :icon 335
+            (let* ((modifmatrix (clone self)))
+              (set-slot modifmatrix slot value)
+              (make-instance 'soundgrain-matrix
+                             :numcols (numcols modifmatrix)
+                             :onset (onset modifmatrix)
+                             :durations (duration modifmatrix)
+                             :amplitude (amplitude modifmatrix)
+                             :file-index (file-index modifmatrix)
+                             :corpus-index (corpus-index modifmatrix)
+                             :iteration-id (iteration-id modifmatrix)
+                             :filepath (filepath modifmatrix)
+                             ))
+            )
+|#
+
+(defmethod! modify-slot ((self class-array) (slot symbol) (value t))
+            :icon 335
+            (let* ((modifarray (clone self)))
+              (set-slot modifarray slot value)
+              modifarray)
+            )
+
+(defmethod! find-sid ((SID list) (streamids t))
+            :icon 639
+            :indoc '("a list of SDIFSID objects" "A streamID (number) or list of StreamIDs")
+            :initvals '(nil "")
+            :doc "Returns source/treeway for StreamIDs from a list of StreamIDtable <sdifsid> objects."
+    (let* ((thetriplets (get-sid-triplets sid))
+           (sourcesandtreeways
+            (loop for item in (list! streamids) collect
+                  (last-n (find item thetriplets :test 'eql :key 'car) 2))))
+      sourcesandtreeways
+      ))
 
 ;needs a loop in a loop (either with a push or with a collect)
 #|

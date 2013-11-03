@@ -93,7 +93,7 @@
            ; (setf ((label2index newarray slotname) newarray) slotvals)
             ;  (label2index newarray slotname)
               ;(setf (#'slotname newarray) slotvals)
-              (setf #'(lambda (theslotname)
+             (setf #'(lambda (theslotname)
                       (theslotname newarray) slotname) slotvals)
             (set-data newarray)
             newarray         
