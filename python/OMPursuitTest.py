@@ -46,7 +46,7 @@ for ci, constraint in enumerate(os.listdir(os.path.expanduser(constraint_path)))
         A = OMPursuit.OMPursuitAnalysis(D, C, target, markers, Ac, maxit)
         A.constrainedMP()
         audiolab.aiffwrite(A.ompModel.signal, os.path.expanduser('~/Research/OM-Pursuit/output/FOF3%d.aif'%ci), A.ompModel.samplerate)
-
+ 
         f = open(os.path.expanduser('~/Research/OM-Pursuit/output/FOF3%d.txt'%ci), 'w')
         f.write('Dictionary : %s\n'%path)
         f.write('Constraint : %s\n'%constraint)
