@@ -16,6 +16,5 @@
 .lisp~
 
 #Python
-*.pyc
 *.py~
 
