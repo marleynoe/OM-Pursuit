@@ -14,5 +14,5 @@ sdifPath = '%s/bookEx.sdif'%root
 maxiter = 10
 
 os.chdir('./dist/OM-Pursuit.app/Contents/MacOS')
-os.system('./OM-Pursuit %s %s %s %s %s %s %s %s %i --dsf 2.0'%(dictPath, constraintPath, targetPath, markerPath, mpconstrPath, modPath, resPath, sdifPath, maxiter))
+os.system('./OM-Pursuit %s %s %s %s %s %s %s %s %i --dsf 1.0'%(dictPath, constraintPath, targetPath, markerPath, mpconstrPath, modPath, resPath, sdifPath, maxiter))
 os.chdir('../../../..')

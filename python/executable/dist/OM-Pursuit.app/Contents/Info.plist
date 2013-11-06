@@ -64,9 +64,9 @@
 		<key>prefer_ppc</key>
 		<false/>
 		<key>site_packages</key>
-		<true/>
+		<false/>
 		<key>use_pythonpath</key>
-		<true/>
+		<false/>
 	</dict>
 	<key>PyResourcePackages</key>
 	<array>
