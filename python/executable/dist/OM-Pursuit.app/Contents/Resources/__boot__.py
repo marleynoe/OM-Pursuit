@@ -311,10 +311,6 @@ def _run():
     exec(compile(source, path, 'exec'), globals(), globals())
 
 
-import os
-os.environ['MATPLOTLIBDATA'] = os.path.join(os.environ['RESOURCEPATH'], 'mpl-data')
-
-
 DEFAULT_SCRIPT='OM-Pursuit.py'
 SCRIPT_MAP={}
 _run()

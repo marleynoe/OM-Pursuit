@@ -9,7 +9,6 @@ import operator
 import time
 from scipy.interpolate import interp1d
 
-
 class OMPursuitAbstractConstraintContainer:
     '''Abstract base class for constraint containers'''
  
@@ -436,6 +435,7 @@ class OMPursuitModel(OMPursuitSegSignal):
         self.samplerate = samplerate 
 
 class OMPursuitAnalysis:
+
     def __init__(self, omdictionary, omcompoundconstraint, omtarget, ommarkers, ompanalysisconst, maxtotal):
 
         self.ompDictionary = omdictionary
@@ -463,19 +463,19 @@ class OMPursuitAnalysis:
         self.maxTotalSoundgrains = maxtotal
      
     def constrainedMP(self):
-
         '''Matching Pursuit with OMPursuit constraints'''
 
         totalCount = 0
         coefficients = np.zeros((len(self.ompMarkers.times), self.ompDictionary.len()))        
         cindices = np.zeros((len(self.ompMarkers.times), self.ompDictionary.len()), dtype=int)
+        dummyTimes = self.ompMarkers.times.copy()
+        subindices = np.arange(len(self.ompMarkers.times))
         
         while totalCount < self.maxTotalSoundgrains:
             print('The current iteration index is %d'%totalCount)
 
             #costly loop
-            for n, time in enumerate(self.ompMarkers.times):
-                #print('The solution to the full constraint for time %0.3f has length %d'%(time, len(self.ompCompoundConstraint.cFullConstraintFunction(self.ompDictionary, time))))
+            for n, time in enumerate(dummyTimes):
                 for index in self.ompCompoundConstraint.cFullConstraintFunction(self.ompDictionary, time):
                     grain = self.ompDictionary.soundgrains[index].signal
                     coef = np.inner(grain, self.ompTarget.signalSegment(time, len(grain)))
@@ -490,7 +490,6 @@ class OMPursuitAnalysis:
             validSoundgrain = False
             scoefinds = np.argsort(abs(coefficients.flatten()))[::-1]
             unravelShape = coefficients.shape
-            #print(len(scoefinds))
 
             for ii, i_ in enumerate(scoefinds):
 
@@ -499,45 +498,42 @@ class OMPursuitAnalysis:
                     continue
 
                 indexwhere = set(np.argwhere(self.ompModel.parameterArray['mindex'][0:totalCount] == cindices[i]).flatten())
-                timewhere = set(np.argwhere(abs(self.ompModel.parameterArray['mtime'][0:totalCount] - self.ompMarkers.times[i[0]]) < 0.0000000001).flatten())
+                timewhere = set(np.argwhere(abs(self.ompModel.parameterArray['mtime'][0:totalCount] - dummyTimes[i[0]]) < 0.0000000001).flatten())
 
                 try:
                     indexwherecorpus = set(np.argwhere(self.ompModel.parameterArray['XCRP'][0:totalCount] == self.ompDictionary.soundgrains[cindices[i]].averagedDescriptors['XCRP'][0]).flatten())
                 except ValueError:
                     indexwherecorpus = set([])
 
-
                 try: 
-                    a = (len(timewhere) <= self.maxSimultaneousAtoms.interpolatedValue(self.ompMarkers.times[i[0]]))
+                    a = (len(timewhere) <= self.maxSimultaneousAtoms.interpolatedValue(dummyTimes[i[0]]))
                 except AttributeError:
                     a = True
 
                 b = (indexwhere & timewhere == set([]))
 
                 try:
-                    c = (len(indexwherecorpus & timewhere) <= self.maxSimultaneousCorpusAtoms.interpolatedValues(self.ompMarkers.times[i[0]]))
+                    c = (len(indexwherecorpus & timewhere) <= self.maxSimultaneousCorpusAtoms.interpolatedValues(dummyTimes[i[0]]))
                 except AttributeError:
                     c = True
 
-                #need to resolve the dynamic constraints here
-            
+                #need to resolve the dynamic constraints here 
                 if a and b and c:
-                    #print('The current max. coefficient index is %d'%ii)
                     validSoundgrain = True
 
                     #update the signal vectors
                     grain = self.ompDictionary.soundgrains[cindices[i]].signal
-                    targseg = self.ompTarget.signalSegment(self.ompMarkers.times[i[0]], len(grain)) 
+                    targseg = self.ompTarget.signalSegment(dummyTimes[i[0]], len(grain)) 
                     targseg -= grain * coefficients[i]
 
-                    modseg = self.ompModel.signalSegment(self.ompMarkers.times[i[0]], len(grain))
+                    modseg = self.ompModel.signalSegment(dummyTimes[i[0]], len(grain))
                     modseg += grain * coefficients[i]
             
                     #store the parameters
                     for key in self.ompDictionary.soundgrains[cindices[i]].averagedDescriptors.dtype.names:
                         self.ompModel.parameterArray[totalCount][key] = self.ompDictionary.soundgrains[cindices[i]].averagedDescriptors[key][0]
 
-                    self.ompModel.parameterArray[totalCount]['mtime'] = self.ompMarkers.times[i[0]]
+                    self.ompModel.parameterArray[totalCount]['mtime'] = dummyTimes[i[0]]
                     self.ompModel.parameterArray[totalCount]['mcoef'] = coefficients[i]
                     self.ompModel.parameterArray[totalCount]['mindex'] = cindices[i]
  
@@ -546,21 +542,37 @@ class OMPursuitAnalysis:
             
                     #remove the time points that violate the time constraints if they exist
                     try:
-                        p = np.argwhere(abs(self.ompMarkers.times - self.ompMarkers.times[i[0]]) > self.minTimeDistance.interpolatedValue(self.ompMarkers.times[i[0]])).flatten()
+                        p = np.argwhere(abs(self.ompMarkers.times - dummyTimes[i[0]]) > self.minTimeDistance.interpolatedValue(dummyTimes[i[0]])).flatten()
+                        p = np.intersect1d(subindices, p)
+                        subindices = p
+                        
+
                     except AttributeError:
-                        p = np.arange(len(self.ompMarkers.times))
+                        #p = np.arange(len(self.ompMarkers.times))
+                        p = None
 
                     try:
-                        q = np.argwhere(abs(self.ompMarkers.times - self.ompMarkers.times[i[0]]) < self.maxTimeDistance.interpolatedValue(self.ompMarkers.times[i[0]])).flatten()
+                        q = np.argwhere(abs(self.ompMarkers.times - dummyTimes[i[0]]) < self.maxTimeDistance.interpolatedValue(dummyTimes[i[0]])).flatten()
+                        
                     except AttributeError:
-                        q = np.arange(len(self.ompMarkers.times))
+                        #q = np.arange(len(self.ompMarkers.times))
+                         q = None
 
-                    pq = np.union1d(p, q)
+                    if (p != None) and (q != None):
+                        pq = np.union1d(p, q)
+                    elif (p != None) and (q == None):
+                        pq = p
+                    elif (q != None) and (p == None):
+                        pq = q
+                    elif (q == None) and (p == None):
+                        pq = np.arange(len(self.ompMarkers.times))
+
+
                     ntime = [self.ompMarkers.times[k] for k in pq]
-                    ntime.append(self.ompMarkers.times[i[0]]) #don't exclude the current time point, i.e. simultaneous sgs 
-                    self.ompMarkers.times = np.sort(np.array(ntime))
-                    coefficients = np.zeros((len(self.ompMarkers.times), self.ompDictionary.len()))
-                    cindices = np.zeros((len(self.ompMarkers.times), self.ompDictionary.len()), dtype=int)
+                    ntime.append(dummyTimes[i[0]]) #don't exclude the current time point, i.e. simultaneous sgs 
+                    dummyTimes = np.sort(np.array(ntime))
+                    coefficients = np.zeros((len(dummyTimes), self.ompDictionary.len()))
+                    cindices = np.zeros((len(dummyTimes), self.ompDictionary.len()), dtype=int)
 
                     break
 
@@ -598,10 +610,6 @@ class OMPursuitAnalysis:
         for ref in self.ompDictionary.sdifFile.get_stream_IDs():
             f.add_streamID(ref.numid, ref.source, ref.treeway)
            
-        #refDict = {str(ref.numid):ref.source for ref in self.ompDictionary.streamRefs}
-        #refDict['Tablename'] = 'FilePaths'
-        #F.Add_NVT(refDict)
-
         #add the global data for the soundgrains in the model
         normLkp = {}
         for key in (set(self.ompDictionary.soundgrains.keys()) & set(np.unique(self.ompModel.parameterArray['mindex']))):

@@ -59,4 +59,4 @@ for ci, constraint in enumerate(os.listdir(os.path.expanduser(constraint_path)))
         print('here')
 
 
-        #print(A.ompModel.parameterArray)
+        #print(A.ompModel.parameterArray
