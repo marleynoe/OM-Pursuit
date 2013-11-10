@@ -494,9 +494,12 @@ class OMPursuitAnalysis:
             for ii, i_ in enumerate(scoefinds):
 
                 i = np.unravel_index(i_, unravelShape)#the 2d index that corresponds to the 1d sorted index
+
                 if int(cindices[i]) == 0:
                     continue
 
+
+                #avoid the same soundgrain at the same location
                 indexwhere = set(np.argwhere(self.ompModel.parameterArray['mindex'][0:totalCount] == cindices[i]).flatten())
                 timewhere = set(np.argwhere(abs(self.ompModel.parameterArray['mtime'][0:totalCount] - dummyTimes[i[0]]) < 0.0000000001).flatten())
 
@@ -505,13 +508,16 @@ class OMPursuitAnalysis:
                 except ValueError:
                     indexwherecorpus = set([])
 
+                #the max. simul. atoms constraint is satisfied if it exists
                 try: 
                     a = (len(timewhere) <= self.maxSimultaneousAtoms.interpolatedValue(dummyTimes[i[0]]))
                 except AttributeError:
                     a = True
 
+                #the current index is already at the current time?
                 b = (indexwhere & timewhere == set([]))
 
+                #the max. simul. corpus atoms constraint is satisfied if it exists
                 try:
                     c = (len(indexwherecorpus & timewhere) <= self.maxSimultaneousCorpusAtoms.interpolatedValues(dummyTimes[i[0]]))
                 except AttributeError:
@@ -548,14 +554,12 @@ class OMPursuitAnalysis:
                         
 
                     except AttributeError:
-                        #p = np.arange(len(self.ompMarkers.times))
                         p = None
 
                     try:
                         q = np.argwhere(abs(self.ompMarkers.times - dummyTimes[i[0]]) < self.maxTimeDistance.interpolatedValue(dummyTimes[i[0]])).flatten()
                         
                     except AttributeError:
-                        #q = np.arange(len(self.ompMarkers.times))
                          q = None
 
                     if (p != None) and (q != None):
