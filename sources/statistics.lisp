@@ -45,6 +45,10 @@
 (defun median (list)
   (nth (round (/ (length list) 2)) (sort list '<)))
 
+(defun om-float (input)
+  (loop for item in input collect
+        (float item)
+        ))
 
 (defun om-sqrt (list)
   (mapcar #'(lambda (theitems)
@@ -65,7 +69,7 @@
                   sum item)
                   )
 ; squared sum
-(defmethod! om-sum2 ((self list))
+(defmethod! om-sum^2 ((self list))
                   (loop for item in self
                   sum (* item item))
                   )

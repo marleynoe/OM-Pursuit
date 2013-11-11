@@ -94,8 +94,8 @@
                   ;(print sdif-outfile)
                   ;(print audio-outfile)
                   ;(print residual-outfile)
-                  ;(om-cmd-line str *sys-console*)
-                  (sys:run-shell-command str :wait nil)
+                  (om-cmd-line str *sys-console*)
+                  ;(sys:run-shell-command str :wait nil) ;perhaps I can route this into the listener
                   (values (probe-file sdif-outfile) (probe-file audio-outfile) (probe-file residual-outfile))           
                   )
               (progn 
@@ -123,7 +123,7 @@
                (get-sgnct-paths self (om-round (third translist)) (om-round (fourth translist))) ;filepath (string)
               )))
 
-
+#|
 (defmethod! get-sgnct-array ((self sdiffile) &optional mintime maxtime)
             :icon 04
             :numouts 1
@@ -177,7 +177,7 @@
                :filepath (nth 7 sdifdata)
                )))
     new))
-
+|#
 
 
 (defmethod! get-sgnct-paths ((self sdiffile) (corpusid list) (fileid list))

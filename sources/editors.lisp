@@ -37,6 +37,8 @@
             (mapcar #'(lambda (theobject) (3dc-scale theobject :ymin ymin :ymax ymax :xmin xmin :xmax xmax :zmin zmin :zmax zmax))
             (bpf-list self)))
 
+
+;not good -> better use the spectrum function
 (defmethod! bpf-ran-colour ((bpf bpf) &key r g b)
             :icon '(402)
   (setf (bpfcolor bpf) (om-make-color (or r (om-random 0. 1.0))

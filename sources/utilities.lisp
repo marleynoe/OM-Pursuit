@@ -346,7 +346,7 @@
 
 
 ;;; --- format for the python-executable -----
-
+#|
 (defun python-deep-format (input-list)
   (setf thestring (format nil "[~a" (python-format (car input-list))))
   (loop for item in (cdr input-list) collect
@@ -393,11 +393,8 @@
 (defun adt-deep-format (input-list)
   (python-deep-format input-list))
 
+|#
 
-(defun om-float (input)
-  (loop for item in input collect
-        (float item)
-        ))
 
 ;-------------------
 
@@ -519,116 +516,8 @@ Ex. (om-scale '(0 2 5) 0 100)  => (0 40 100)
 |#
 
 
-#|
-(defmethod! sound->envelope ((self sound) (resolution number) &key (filtertype "lowpass") (windowsize 3) (recursions 5) (unit "linear"))
-;based samples + samplerate  I can determine a bw in Hz (or samplerate of the Env-follower)
-            :icon '(141) 
-            :initvals '(nil nil "lowpass" 3 5)
-            :menuins '((2 (("lowpass" "lowpass") ("mean" "mean") ("median" "median")))
-                       (5 (("linear" "linear") ("dbfs" "dbfs"))))
-
-            (let* ((thesamples (sound-points self resolution))
-                   (sqrt-samples (mapcar (lambda (samples)
-                                           (sqrt samples)) (om* thesamples thesamples))))
-              (cond ((equal filtertype "lowpass")
-                     (setf envelope (filtres::low-pass-rec sqrt-samples windowsize recursions)))
-                    ((equal filtertype "mean")
-                     (setf envelope (filtres::mean-filter-rec sqrt-samples windowsize recursions)))
-                    ((equal filtertype "median")
-                     (setf envelope (filtres::median-filter-rec sqrt-samples windowsize recursions))))
-              (let* ((theenvelope
-                     (if (equal unit "dbfs")
-                         (lin->db envelope)
-                       envelope))
-                     (thedur (sound-dur self))
-                    (thexpoints (arithm-ser 0 thedur (om/ thedur resolution) thedur)))
-                (simple-bpf-from-list thexpoints theenvelope 'bpf 10)
-                )))
-|#
-
-
-
 
 ;;; For now we need to re-define samples->sec function
-
-#|
-;;; SAMPLES / SECONDS
-(defmethod! samples->sec ((samples number) &optional samplerate)
-          :icon 141 
-          :initvals '(0 nil)
-          :indoc '("number of samples" "sample rate (Hz)")
-          :numouts 1
-          :doc "Converts <samples> to a time (or duration) in seconds depending on <samplerate>.
-
-If <samplerate> is NIL, the OM default sample rate is used to calculate the time."
-          (float (/ samples (or samplerate *audio-sr*)))
-          )
-
-(defmethod! samples->sec ((samples list) &optional samplerate)
-   (mapcar #'(lambda (input)
-               (samples->sec input samplerate)) samples))
-
-(defmethod! sec->samples ((secs number) &optional samplerate) 
-          :icon 141  
-          :initvals '(0 nil)
-          :indoc '("duration (s)" "sample rate (Hz)")
-          :numouts 1
-          :doc "Converts <secs> to a number of samples depending on <samplerate>.
-
-If <samplerate> is NIL, the OM default sample rate is used to calculate the samples."
-          (float (* secs (or samplerate *audio-sr*))))
-
-(defmethod! sec->samples ((secs list) &optional samplerate) 
-          (mapcar #'(lambda (input)
-                      (sec->samples input samplerate)) secs)
-          )
-|#
-
-#|
-(defmethod! draw-searchspace ((self list) (searchspace number))
-            :numouts 3
-            (let* ((thelist  
-                   (loop for bpf in self collect
-                         (let* ((lowerpoints (y-offset bpf (* -1 searchspace)))
-                                (upperpoints (y-offset bpf searchspace))
-                                (xmin (list-min (first lowerpoints)))
-                                (xmax (list-max (first lowerpoints)))
-                                (ymin (list-min (second lowerpoints)))
-                                (ymax (list-max (second upperpoints)))
-                                )
-                           
-                           (list 
-                            (simple-bpf-from-list (x-append (first upperpoints) (reverse (first lowerpoints))) (x-append (second upperpoints) (reverse (second lowerpoints))) 'bpc (decimals bpf))
-                            (list xmin xmax)
-                            (list ymin ymax))
-                     )))
-                   (thetranslist (mat-trans thelist)))
-              (let ((xtrans (mat-trans (second thetranslist)))
-                    (ytrans (mat-trans (third thetranslist))))
-              (values (first thetranslist) 
-                      (list
-                       (list-min (first xtrans)) (list-max (second xtrans)))
-                      (list
-                       (list-min (first ytrans)) (list-max (second ytrans)))
-                      )))
-              )
-
-(defmethod! draw-searchspaces ((markers list) (bpfs list) (searchparam list))
-            (let ((theresult
-                   (loop for marker in markers
-                         for param in searchparam
-                         collect
-                         (multiple-value-list (draw-searchspaces marker bpfs param))))
-                         )
-              (let* ((thetranslist (mat-trans theresult))
-                     (thex (mat-trans (second thetranslist)))
-                     (they (mat-trans (third thetranslist))))               
-              (values (flat (first thetranslist))
-                      (list (list-min (first thex)) (list-max (second thex)))
-                      (list (list-min (first they)) (list-max (second they))))
-              )))
-
-|#
 
 (defmethod! bpf-colour ((bpf bpf) &key r g b)
             :icon '(402)
@@ -672,13 +561,28 @@ If <samplerate> is NIL, the OM default sample rate is used to calculate the samp
             )
 |#
 
+;this function removes aif and wav files from a directory
+
+(defun clean-soundfiles (&optional dir)
+  (let ((src-root (or dir (make-pathname :directory (butlast (pathname-directory *load-pathname*) 2)))))
+    (mapc #'(lambda (file) 
+              (if (system::directory-pathname-p file)
+                  (clean-files file)
+                (when (and (pathname-type file)
+                           (or (string-equal (pathname-type file) "aif")
+                               (string-equal (pathname-type file) "wav")))
+                  (print (concatenate 'string "Deleting " (namestring file) " ..."))
+                  (delete-file file)
+                  )))
+          (directory (namestring src-root) :directories t))
+    ))
 
 ;============== stupid hack to override 10 decimals limit for BPFs ==============
 
 (defmethod check-decimals ((self bpf))
     (unless (and (integerp (decimals self))
                  (> (decimals self) 0) 
-                 (<= (decimals self) 10))
+                 (<= (decimals self) 15))
     (cond ((not (integerp (decimals self)))
            (om-beep-msg "BPF decimals must be an integer value!")
            (setf (slot-value self 'decimals) 0))
@@ -699,3 +603,12 @@ If <samplerate> is NIL, the OM default sample rate is used to calculate the samp
             (let ((index (search char string)))
               (if index (values (subseq string 0 index) (subseq string (+ index 1)))
                 (values string nil))))
+
+;=== get bpf points ======
+
+(defmethod! get-bpf-points ((self bpf-lib))
+            (let ((bpflist (bpf-list self)))
+                    (loop for bpf in bpflist collect
+                    (point-pairs bpf)
+                    ))
+              )

@@ -68,6 +68,20 @@
               (set-array (type-of self) (numcols self) finaldata)
               ))
 
+
+
+(defmethod! set-array-slot ((array class-array) (slotname string) (slotvals t))
+            :icon '(264)
+            (let ((newarray array))
+           ; (setf ((label2index newarray slotname) newarray) slotvals)
+            ;  (label2index newarray slotname)
+              ;(setf (#'slotname newarray) slotvals)
+             (setf #'(lambda (theslotname)
+                      (theslotname newarray) slotname) slotvals)
+            (set-data newarray)
+            newarray         
+            ))
+
 #|
 (defmethod! set-array-slot ((self class-array) (slotname t) (slotvals t))
             :icon '(264)
@@ -87,26 +101,19 @@
               ))
 |#
 
-(defmethod! set-array-slot ((array class-array) (slotname string) (slotvals t))
-            :icon '(264)
-            (let ((newarray array))
-           ; (setf ((label2index newarray slotname) newarray) slotvals)
-            ;  (label2index newarray slotname)
-              ;(setf (#'slotname newarray) slotvals)
-             (setf #'(lambda (theslotname)
-                      (theslotname newarray) slotname) slotvals)
-            (set-data newarray)
-            newarray         
-            ))
-
-
-
 (defun set-array (type numcols params)
 (let ((array (cons-array (make-instance type) (list nil numcols 0 nil) params)))
  (set-data array)
  array)
 )
 
+
+(defun give-array (theparameters)
+  (print theparameters)
+  (set-array 'add-1 (length (car theparameters)) (list :e-dels (car theparameters) 
+                                                       :amp (second theparameters)
+                                                       :durs (third theparameters))
+             ))
 
 (defmethod! process-array ((process t) (array class-array))
             :icon '(264)
@@ -143,7 +150,7 @@
 (defmethod! process-array-slot ((process t) (slotname string) (array class-array))
             :icon '(264)
             (let* ((thearray (clone array))
-                  ;(theslotvalues (symbol-function slotname)) ;later I should use symbol-function... but no time for now
+                  ;(theslotvalues (symbol-function slotname)) ;later I should use symbol-function... 
                   (theslotvalues (array-field array slotname))
                   (thenewvalues (funcall process theslotvalues)))
             (array-field thearray slotname thenewvalues)
@@ -371,6 +378,7 @@
             (convert-paths thedata discard-levels new-dir keep-levels)
             )
 
+; these guys require the om-fil lib
 #|
 (defmethod! slot-lowpass ((thedata list) (filtertype string) (windowsize number) (recursion-depth number))
             :icon 04
@@ -495,7 +503,6 @@
             :outdoc '("array" "list of components")
             (values (first self) (second self))
             )
-
 
 #|
 ;with three args
