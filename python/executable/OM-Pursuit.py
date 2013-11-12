@@ -14,7 +14,7 @@ if __name__ == '__main__':
     parser.add_argument('res_output_path', help='Path to write residual sound file')
     parser.add_argument('sdif_output_path', help='Path to write OM-Pursuit model SDIF file') 
     parser.add_argument('max_iterations', type=int, help='The maximum number of analysis iterations')
-    parser.add_argument('--dsf', type=float, default=1, help='A positive float >= 1.  The analysis procedure will down-sample the requisite audio files by this factor, e.g. 44.1kHz files with a dsf argument of 2 will be processed at 22.05kHz')
+    parser.add_argument('--dsf', type=int, default=1, help='A positive int >= 1  The analysis procedure will down-sample the requisite audio files by this factor, e.g. 44.1kHz files with a dsf argument of 2 will be processed at 22.05kHz')
     parser.add_argument('--logfile', help='Path to a log txt file')
 
     args = parser.parse_args()

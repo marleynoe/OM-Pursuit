@@ -3,6 +3,7 @@ import OMPursuit
 import numpy as np
 import matplotlib.pyplot as plt
 import scikits.audiolab as audiolab
+import time
 
 #path = '~/Research/OM-Pursuit/dictionaries/Benvibes-inclmidi.dict.sdif'
 #path = '~/Research/OM-pursuit/dictionaries/Percussion.dict.sdif'
@@ -26,7 +27,7 @@ markerPath = '~/Research/OM-Pursuit/target/harm_fof/harm_fof.mrk.sdif'
 
 mpconstrPath = '/Users/geb/Research/OM-Pursuit/constraints/new-mp-constraints/maxatoms-and-corpatoms-and-mindistance.glmpctr.sdif'
 
-dsfactor = 1
+dsfactor = 8
 maxit = 250
 
 for ci, constraint in enumerate(os.listdir(os.path.expanduser(constraint_path))):
@@ -35,7 +36,9 @@ for ci, constraint in enumerate(os.listdir(os.path.expanduser(constraint_path)))
 
         print(constraint)
         
+        p = time.clock()
         D = OMPursuit.OMPursuitDictionary(path, dsfactor)
+        print("Total time is %0.1f"%(time.clock()-p))
         Ac = OMPursuit.OMPAnalysisConstraintSet(mpconstrPath)
         C = OMPursuit.OMPursuitCompoundConstraint(constraint_path + '/' + constraint)
         markers = OMPursuit.OMPursuitMarkers(markerPath)
@@ -56,7 +59,4 @@ for ci, constraint in enumerate(os.listdir(os.path.expanduser(constraint_path)))
         f.close()
 
         A.writeModelSdif('~/Research/OM-Pursuit/output/FOF3%d.sdif'%ci)
-        print('here')
-
-
         #print(A.ompModel.parameterArray

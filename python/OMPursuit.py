@@ -242,10 +242,11 @@ class OMPursuitSoundgrain:
             x = x[:, 0]
 
         self.norm = linalg.norm(x)#the original norm, this is needed to do the rescaling later in OM
-        self.samplerate = fs            
+        self.samplerate = fs           
 
         if downsampleFactor > 1:
-            x = sig.resample(x, len(x)/downsampleFactor)
+            #x = sig.resample(x, len(x)/downsampleFactor) #faster on white noise but not on practical signals?
+            x = sig.decimate(x, downsampleFactor)
             self.samplerate = fs / downsampleFactor
         elif downsampleFactor < 1:
             raise Exception("Upsampling not permitted")
@@ -393,8 +394,10 @@ class OMPursuitTarget(OMPursuitSegSignal):
         self.samplerate = fs            
 
         if downsampleFactor > 1:
-            x = sig.resample(x, len(x)/downsampleFactor)
+            #x = sig.resample(x, len(x)/downsampleFactor)
+            x = sig.decimate(x, downsampleFactor)
             self.samplerate = fs / downsampleFactor
+
         elif downsampleFactor < 1:
             raise Exception("Upsampling not permitted")
 
