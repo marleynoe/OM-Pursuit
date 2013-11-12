@@ -46,7 +46,8 @@ for ci, constraint in enumerate(os.listdir(os.path.expanduser(constraint_path)))
         target.zeropadSignal(D, markers)
 
         #omdictionary, omcompoundconstraint, omtarget, ommarkers, maxtotal, mindistance, maxsimultaneous)
-        A = OMPursuit.OMPursuitAnalysis(D, C, target, markers, Ac, maxit)
+        #A = OMPursuit.OMPursuitAnalysis(D, target, markers, maxit, constraint=C, mpconstraint=Ac)
+        A = OMPursuit.OMPursuitAnalysis(D, target, markers, maxit)
         A.constrainedMP()
         audiolab.aiffwrite(A.ompModel.signal, os.path.expanduser('~/Research/OM-Pursuit/output/FOF3%d.aif'%ci), A.ompModel.samplerate)
  

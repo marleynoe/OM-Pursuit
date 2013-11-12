@@ -439,22 +439,26 @@ class OMPursuitModel(OMPursuitSegSignal):
 
 class OMPursuitAnalysis:
 
-    def __init__(self, omdictionary, omcompoundconstraint, omtarget, ommarkers, ompanalysisconst, maxtotal):
+    def __init__(self, omdictionary, omtarget, ommarkers, maxtotal, constraint=None, mpconstraint=None):
 
         self.ompDictionary = omdictionary
-        self.ompCompoundConstraint = omcompoundconstraint
+
+        if constraint != None:
+            self.ompCompoundConstraint = constraint
+
         self.ompTarget = omtarget
         self.ompMarkers = ommarkers
         
-        for value in ompanalysisconst.constraints.values():
-            if value.cSignature == 'XMSA':
-                self.maxSimultaneousAtoms = value
-            elif value.cSignature == 'XMSC':
-                self.maxSimultaneousCorpusAtoms = value
-            elif value.cSignature == 'XMNT':
-                self.minTimeDistance = value
-            elif value.cSignature == 'XMXT':
-                self.maxTimeDistance = value
+        if mpconstraint != None:
+            for value in mpconstraint.constraints.values():
+                if value.cSignature == 'XMSA':
+                    self.maxSimultaneousAtoms = value
+                elif value.cSignature == 'XMSC':
+                    self.maxSimultaneousCorpusAtoms = value
+                elif value.cSignature == 'XMNT':
+                    self.minTimeDistance = value
+                elif value.cSignature == 'XMXT':
+                    self.maxTimeDistance = value
 
         datatype = self.ompDictionary.soundgrains[1].averagedDescriptors.dtype.descr
         datatype.append(('mtime', '<f8'))
@@ -479,7 +483,13 @@ class OMPursuitAnalysis:
 
             #costly loop
             for n, time in enumerate(dummyTimes):
-                for index in self.ompCompoundConstraint.cFullConstraintFunction(self.ompDictionary, time):
+
+                try:
+                    aindices = self.ompCompoundConstraint.cFullConstraintFunction(self.ompDictionary, time)
+                except AttributeError:
+                    aindices = self.ompDictionary.soundgrains.keys()
+
+                for index in aindices:
                     grain = self.ompDictionary.soundgrains[index].signal
                     coef = np.inner(grain, self.ompTarget.signalSegment(time, len(grain)))
                     if abs(coef) > coefficients[n, index-1]:
