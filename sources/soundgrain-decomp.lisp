@@ -44,24 +44,25 @@
 
 ;(target_path, dictionary_path, cmax, SRR, maxsimul, mindistance, mod_outpath, res_outpath, sdif_outpath)
 
-(defmethod! soundgrain-decomp ((target sound) (markers sdiffile) (dictionary sdiffile) (constraints sdiffile) (mp-constraints sdiffile) (max-iterations number) &key outpath downsampling-factor)
-            (soundgrain-decomp (sound-path target) (filepathname markers) (filepathname dictionary) (filepathname constraints) (filepathname mp-constraints) max-iterations :outpath outpath
-                               :downsampling-factor downsampling-factor))
+;(defmethod! soundgrain-decomp ((target sound) (markers sdiffile) (dictionary sdiffile) (constraints t) (mp-constraints t) (max-iterations number) &key outpath (downsampling-factor 1) logfile)
+;            (soundgrain-decomp (sound-path target) (filepathname markers) (filepathname dictionary) (filepathname constraints) (filepathname mp-constraints) max-iterations :outpath outpath
+;                               :downsampling-factor downsampling-factor))
 
-(defmethod! soundgrain-decomp ((target pathname) (markers pathname) (dictionary pathname) (constraints pathname) (mp-constraints pathname) (max-iterations number) &key outpath (downsampling-factor 1.0))
+(defmethod! soundgrain-decomp ((target sound) (markers sdiffile) (dictionary sdiffile) (constraints t) (mp-constraints t) (max-iterations number) &key outpath (downsampling-factor 1) logfile)
 
 ;dictPath, constraintPath, targetPath, markerPath, mpconstrPath, modPath, resPath, sdifPath, maxiter
 
             :icon 04
             :numouts 3
-            :initvals '(nil nil nil nil nil nil nil nil 1.0)
+            :initvals '(nil nil nil nil nil 50 nil nil nil)
             :indoc '("target sound" "markers" "dictionary" "constraints" "mp-constraints" "maxiterations" "outpath" "downsampling factor")
             
             :outdoc '("model audio" "residual audio" "model sdif file")
 
-            (print downsampling-factor)
+
             (if (probe-file *om-pursuit-path*)
-                (let* ((inpath target)
+                (let* ((target (sound-path target))
+                       (inpath target)
                        (filename (pathname-name inpath))
                        (name (or (and outpath (pathname-name outpath)) (format nil "~a" filename)))
                        (outdir (or outpath (om-make-pathname :directory (append (pathname-directory inpath) (list name)))))                      
@@ -71,32 +72,45 @@
                                                         :name (string+ name "__ompursuit_model") :type "wav"))
                        (residual-outfile (om-make-pathname :directory (append (pathname-directory outdir))
                                                         :name (string+ name "_ompursuit_residual") :type "wav"))
+                       (textlog-outfile (om-make-pathname :directory (append (pathname-directory outdir))
+                                                          :name (string+ name "_ompursuit_textlog") :type "txt"))
                        )
                   (om-create-directory outdir)
+                  ;some checks
+                  
+                  ;check for downsampling factor
+                  (when (and downsampling-factor (floatp downsampling-factor)) (progn (om-beep-msg "downsampling-factor must be an integer") (om-abort)))
+                  
                   (setf str 
-                        (format nil "~s ~s ~s ~s ~s ~s ~s ~s ~s ~d --dsf ~f" 
-                                ;dictPath, constraintPath, targetPath, markerPath, mpconstrPath, modPath, resPath, sdifPath, maxiter
-                                
+                        (format nil "~s ~s ~s ~s ~s ~s ~s ~d" 
+
+                                ;*om-pursuit-path* dictionary_path target_path marker_path output_path res_output_path sdif_output_path max_iterations
+
                                 (namestring *om-pursuit-path*)
-                                (namestring dictionary)
-                                (namestring constraints)
+                                (namestring (filepathname dictionary))
+                                
                                 (namestring inpath)
-                                (namestring markers)
-                                (namestring mp-constraints)
+                                (namestring (filepathname markers))
+                                
                                 (namestring audio-outfile)
                                 (namestring residual-outfile)
                                 (namestring sdif-outfile)
                                 max-iterations
-                                downsampling-factor
                                 ))
+                  ;(print str)
+                  (when constraints (setf str (string+ str (format nil " --constraint_path ~s" (if (pathnamep constraints) (namestring constraints) (namestring (filepathname constraints)))))))
+                  (when mp-constraints (setf str (string+ str (format nil " --mpconstraint_path ~s" (if (pathnamep mp-constraints) (namestring mp-constraints) (namestring (filepathname mp-constraints)))))))
+                  (when downsampling-factor (setf str (string+ str (format nil " --dsf ~d" downsampling-factor))))
+                  (when logfile (setf str (string+ str (format nil " --logfile ~s" (namestring textlog-outfile)))))                        
                   (print str)
+
                   ;(print outdir)
                   ;(print sdif-outfile)
                   ;(print audio-outfile)
                   ;(print residual-outfile)
-                  (om-cmd-line str *sys-console*)
+                  ;(om-cmd-line str *sys-console*)  ; *sys-console*
                   ;(sys:run-shell-command str :wait nil) ;perhaps I can route this into the listener
-                  (values (probe-file sdif-outfile) (probe-file audio-outfile) (probe-file residual-outfile))           
+                  (values (probe-file audio-outfile) (probe-file residual-outfile) (probe-file sdif-outfile))           
                   )
               (progn 
                 (print "OM-Pursuit executable not found... set in preferences?")

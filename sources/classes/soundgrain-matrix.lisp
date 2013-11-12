@@ -217,7 +217,7 @@ See http://sdif.sourceforge.net/standard/sdif-standard.html#Stream%20IDs%20Table
 (defmethod objfromobjs ((self sdiffile) (type soundgrain-matrix))
   (model-to-matrix self)
   )
-
+#|
 (defmethod objfromobjs ((self soundgrain-matrix) (type smpl-linear))
   (make-instance 'smpl-linear
                  :numcols (numcols self)
@@ -239,6 +239,7 @@ See http://sdif.sourceforge.net/standard/sdif-standard.html#Stream%20IDs%20Table
                  :aenv (simple-bpf-from-list '(0 100) '(1000 1000) 'bpf 10)
                  )
   )
+|#
 
 ;this is very slow !!! WHY??
 (defmethod! get-descriptor-data ((self sdiffile) (streamnumber number) (descriptor string))
