@@ -1,4 +1,11 @@
-;AtomicOrchestrator, 2010 McGill University
+;************************************************************************
+; OM-Pursuit, library for dictionary-based sound modelling in OpenMusic *
+;      (c) 2011-2013 Marlon Schumacher (CIRMMT/McGill University)       *     
+;               https://github.com/marleynoe/OM-Pursuit                 *
+;                                                                       *
+;                DSP based on pydbm - (c) Graham Boyes                  *
+;                  https://github.com/gboyes/pydbm                      *
+;************************************************************************
 ;
 ;This program is free software; you can redistribute it and/or
 ;modify it under the terms of the GNU General Public License
@@ -16,7 +23,7 @@
 ;along with this program; if not, write to the Free Software
 ;Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307,10 USA.
 ;
-;Authors: M. Schumacher
+;Authors: M. Schumacher, G.Boyes
 
 (in-package :om)
 

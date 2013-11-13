@@ -1,4 +1,11 @@
-;AtomicOrchestrator, 2010 McGill University
+;************************************************************************
+; OM-Pursuit, library for dictionary-based sound modelling in OpenMusic *
+;      (c) 2011-2013 Marlon Schumacher (CIRMMT/McGill University)       *     
+;               https://github.com/marleynoe/OM-Pursuit                 *
+;                                                                       *
+;                DSP based on pydbm - (c) Graham Boyes                  *
+;                  https://github.com/gboyes/pydbm                      *
+;************************************************************************
 ;
 ;This program is free software; you can redistribute it and/or
 ;modify it under the terms of the GNU General Public License
@@ -67,7 +74,23 @@
 (defmethod! ctr-define ((constraint symbol) (descriptor string) (order integer) (value t))
             :icon  22 ;02 ;20 
             :initvals '(nil "0" 0 nil)
-            :menuins (list (list 0 (list '("<" '<) '("<=" '<=) '(">" '>) '(">=" '>=)  '("==" '==) '("!=" '!=)  '("W" 'W) '("B" 'B) ))
+            :menuins (list (list 0 (list '("<" '<) '("<=" '<=) '(">" '>) '(">=" '>=)  '("==" '==) '("!=" '!=) '("W" 'W) '("B" 'B) ))
+                        ;(1 ( ("SpectralCentroid" "1SCN") ("SpectralKurtosis" "1SLK") ("SpectralRolloff" "1SLR") ("SpectralDecrease" "1SPD") )))
+                        (list 1 *ircamdescriptortypes*))
+
+            :indoc '("constraint as a symbol" "which descriptor to apply the constraint to" "an integer specifying the order" "the value for the constraint (static = number, dynamic = bpf)")
+            :doc "Defines and returns an instance of sgn-constraint"
+            (make-instance 'sgn-constraint
+                           :constraint constraint
+                           :descriptor descriptor
+                           :order order
+                           :value value)
+            )
+
+(defmethod! ctr-conditional ((constraint symbol) (descriptor string) (order integer) (value t))
+            :icon  22 ;02 ;20 
+            :initvals '(nil "0" 0 nil)
+            :menuins (list (list 0 (list '("<" '<) '("<=" '<=) '(">" '>) '(">=" '>=)  '("==" '==) '("!=" '!=) ));  '("W" 'W) '("B" 'B) ))
                         ;(1 ( ("SpectralCentroid" "1SCN") ("SpectralKurtosis" "1SLK") ("SpectralRolloff" "1SLR") ("SpectralDecrease" "1SPD") )))
                         (list 1 *ircamdescriptortypes*))
 
@@ -81,40 +104,83 @@
             )
 
 
-(defmethod! ctr-define ((constraint integer) (descriptor string) (order integer) (value t))
+(defmethod! ctr-k-nearest ((constraint integer) (descriptor string) (order integer) (value t))
+            :icon  22
+            :initvals '(nil nil 0 nil)
+            :menuins (list (list 1 *ircamdescriptortypes*))
             (make-instance 'sgn-constraint
                            :constraint constraint
                            :descriptor descriptor
                            :order order
                            :value value)
             )
+#|
+(defmethod! ctr-weight ((descriptor string) (order integer) (value t))
+            :icon  22
+            :initvals '(nil 0 nil)
+            :menuins (list (list 0 *ircamdescriptortypes*))
+            (make-instance 'sgn-constraint
+                           :constraint 'w
+                           :descriptor descriptor
+                           :order order
+                           :value value)
+            )
+|#
+
+; =========== mp-ctr-define =========
+
+(defmethod! mpctr-define ((descriptor string) (value t) &optional (extra 0))
+            :icon  22 ;02 ;20 
+            :initvals '(nil nil 0)
+            :menuins (list (list 0 (list '("maxsimulatoms" "XMSA") '("maxsimulcorpusatoms" "XMSC") '("minimum-inter-onset-time" "XMNT") '("maximum-inter-onset-time" "XMXT"))))
+            :indoc '("which descriptor to apply the constraint to" "the value for the constraint (static = number, dynamic = bpf)" "an optional parameter")
+            :doc "Defines and returns an instance of sgn-constraint"
+            (make-instance 'sgn-constraint
+                           :constraint 'mp
+                           :descriptor descriptor
+                           :order extra
+                           :value value)
+            )
+
+(defmethod! mpctr-combine ((constraint1 t) (constraint2 t) &rest constraints)
+            :icon 11
+            :initvals '(nil nil nil)
+            ;:menuins '( (0 (("AND" 'AND) ( "NAND" 'NAND ) ( "OR" 'OR ) ( "NOR" 'NOR ) ( "XOR" 'XOR ) ( "XNOR" 'XNOR ))))
+            (let* ((thelist (list 'or (list constraint1 "," constraint2))))
+                   (loop for constraint in constraints do
+                         (setf thelist (mpctr-combine thelist constraint)))
+                   thelist)
+            )
+
 
 ; this function allows combining different sub-constraints (constraint-blocks) into larger scale tree-structures
-(defmethod! ctr-combine ((operator symbol) (constraint1 t) (constraint2 t))
+(defmethod! ctr-combine ((logical-connective symbol) (constraint1 t) (constraint2 t))
             :icon 11
             :initvals '(nil nil nil)
             :menuins '( (0 (("AND" 'AND) ( "NAND" 'NAND ) ( "OR" 'OR ) ( "NOR" 'NOR ) ( "XOR" 'XOR ) ( "XNOR" 'XNOR ))))
-            (list operator (list constraint1 "," constraint2))
+            (list logical-connective (list constraint1 "," constraint2))
             )
 
 (defmethod! ctr-weight ((constraint t) (weighting t))
             :icon 15
-            ;:indoc 
+            :indoc '("constraint specifying a subset" "constraint specifying a weighting based on a descriptor, or an arbitrary bias")
             ;:menuins '( (0 (( "W" 'W ) ( "B" 'B ))))
             ;(print (list operator constraint weighting))
             (if ;(and
                 (or (equal (constraint weighting) 'w) (equal (constraint weighting) 'b))
                 ;(not (or (equal (constraint constraint) 'w) (equal (constraint constraint) 'b)))
                 ;)         
-                ;now I can't specify NILs anymore (because of the check for 
+                ;I can't specify NILs anymore
                 (list (constraint weighting) (list constraint "," weighting))
               ;  (format nil "(~a (~a,~a))" operator constraint weighting)
               (om-beep-msg "Please connect a constraint to left input and a weight to right input"))
               )
             
-; this function takes a list of sgn-constraints and operators and writes an SDIF files
+; this function takes a list of sgn-constraints and operators and writes an SDIF file
 (defmethod! ctr-compile ((ctr-constraint t))
             :icon 10
+            :indoc '("a nested list of sgn-constraints and connectives")
+            :doc "compiles a hierarchy of nested sgn-constraint constraint into an SDIF file."
             ;(print constraint)
             (let* ((object-list (flat (list-filter 'sgn-constraint-p (list! ctr-constraint) 'pass)))
                    (side-effect (loop for item in object-list 
@@ -182,7 +248,7 @@
             )
 |#
 
-(defmethod! ctr-compile-mp ((ctr-constraint t))
+(defmethod! mpctr-compile ((ctr-constraint t))
             :icon 10 ;02
             ;(print constraint)
             (let* ((object-list (flat (list-filter 'sgn-constraint-p (list! ctr-constraint) 'pass)))

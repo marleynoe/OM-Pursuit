@@ -1,4 +1,11 @@
-;AtomicOrchestrator, 2010 McGill University
+;************************************************************************
+; OM-Pursuit, library for dictionary-based sound modelling in OpenMusic *
+;      (c) 2011-2013 Marlon Schumacher (CIRMMT/McGill University)       *     
+;               https://github.com/marleynoe/OM-Pursuit                 *
+;                                                                       *
+;                DSP based on pydbm - (c) Graham Boyes                  *
+;                  https://github.com/gboyes/pydbm                      *
+;************************************************************************
 ;
 ;This program is free software; you can redistribute it and/or
 ;modify it under the terms of the GNU General Public License
@@ -16,7 +23,7 @@
 ;along with this program; if not, write to the Free Software
 ;Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307,10 USA.
 ;
-;Authors: M. Schumacher
+;Authors: M. Schumacher, G.Boyes
 
 (in-package :om)
 
@@ -26,6 +33,8 @@
 
 (defmethod! build-array ((components list))
             :icon '(264)
+            :indoc '("a list of array components")
+            :doc "takes a list of components and builds an array"
             (let* ((newarray (make-instance (type-of (comp-array (first components)))
                                             :numcols 0
                                             ))) ;(or actiontime 0)
@@ -69,6 +78,7 @@
               ))
 
 
+; like modify-slot?
 
 (defmethod! set-array-slot ((array class-array) (slotname string) (slotvals t))
             :icon '(264)

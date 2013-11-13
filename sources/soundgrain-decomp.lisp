@@ -1,4 +1,11 @@
-;AtomicOrchestrator, 2010 McGill University
+;************************************************************************
+; OM-Pursuit, library for dictionary-based sound modelling in OpenMusic *
+;      (c) 2011-2013 Marlon Schumacher (CIRMMT/McGill University)       *     
+;               https://github.com/marleynoe/OM-Pursuit                 *
+;                                                                       *
+;                DSP based on pydbm - (c) Graham Boyes                  *
+;                  https://github.com/gboyes/pydbm                      *
+;************************************************************************
 ;
 ;This program is free software; you can redistribute it and/or
 ;modify it under the terms of the GNU General Public License
@@ -16,7 +23,7 @@
 ;along with this program; if not, write to the Free Software
 ;Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307,10 USA.
 ;
-;Authors: M. Schumacher
+;Authors: M. Schumacher, G.Boyes
 
 (in-package :om)
 
@@ -48,7 +55,7 @@
 ;            (soundgrain-decomp (sound-path target) (filepathname markers) (filepathname dictionary) (filepathname constraints) (filepathname mp-constraints) max-iterations :outpath outpath
 ;                               :downsampling-factor downsampling-factor))
 
-(defmethod! soundgrain-decomp ((target sound) (markers sdiffile) (dictionary sdiffile) (constraints t) (mp-constraints t) (max-iterations number) &key outpath (downsampling-factor 1) logfile)
+(defmethod! soundgrain-decomp ((target sound) (markers t) (dictionary t) (constraints t) (mp-constraints t) (max-iterations number) &key outpath (downsampling-factor 1) logfile)
 
 ;dictPath, constraintPath, targetPath, markerPath, mpconstrPath, modPath, resPath, sdifPath, maxiter
 
@@ -66,32 +73,46 @@
                        (filename (pathname-name inpath))
                        (name (or (and outpath (pathname-name outpath)) (format nil "~a" filename)))
                        (outdir (or outpath (om-make-pathname :directory (append (pathname-directory inpath) (list name)))))                      
-                       (sdif-outfile (om-make-pathname :directory (append (pathname-directory outdir))
+                       (sdif-outfile (if *automatic-rename*
+                                         (auto-rename (om-make-pathname :directory (append (pathname-directory outdir))
                                                        :name (string+ name "_ompursuit_model") :type "sdif"))
-                       (audio-outfile (om-make-pathname :directory (append (pathname-directory outdir))
-                                                        :name (string+ name "__ompursuit_model") :type "wav"))
-                       (residual-outfile (om-make-pathname :directory (append (pathname-directory outdir))
+                                       (om-make-pathname :directory (append (pathname-directory outdir))
+                                                       :name (string+ name "_ompursuit_model") :type "sdif")))
+
+                       (audio-outfile (if *automatic-rename* 
+                                          (auto-rename (om-make-pathname :directory (append (pathname-directory outdir))
+                                                        :name (string+ name "_ompursuit_audio") :type "wav"))
+                                        (om-make-pathname :directory (append (pathname-directory outdir))
+                                                        :name (string+ name "_ompursuit_audio") :type "wav")))
+
+                       (residual-outfile (if *automatic-rename*
+                                             (auto-rename (om-make-pathname :directory (append (pathname-directory outdir))
                                                         :name (string+ name "_ompursuit_residual") :type "wav"))
-                       (textlog-outfile (om-make-pathname :directory (append (pathname-directory outdir))
+                                           (om-make-pathname :directory (append (pathname-directory outdir))
+                                                        :name (string+ name "_ompursuit_residual") :type "wav")))
+
+                       (textlog-outfile (if *automatic-rename*
+                                            (auto-rename (om-make-pathname :directory (append (pathname-directory outdir))
                                                           :name (string+ name "_ompursuit_textlog") :type "txt"))
+                                          (om-make-pathname :directory (append (pathname-directory outdir))
+                                                          :name (string+ name "_ompursuit_textlog") :type "txt")))
                        )
+                  ;the file-overwrite check should be here (above) since these are he arguments given to OM-Pursuit.
+                  ;I should ask Jean how to prevent that a file is overwritten
                   (om-create-directory outdir)
-                  ;some checks
-                  
+                  ;some checks                
                   ;check for downsampling factor
                   (when (and downsampling-factor (floatp downsampling-factor)) (progn (om-beep-msg "downsampling-factor must be an integer") (om-abort)))
-                  
+                
                   (setf str 
                         (format nil "~s ~s ~s ~s ~s ~s ~s ~d" 
 
                                 ;*om-pursuit-path* dictionary_path target_path marker_path output_path res_output_path sdif_output_path max_iterations
 
                                 (namestring *om-pursuit-path*)
-                                (namestring (filepathname dictionary))
-                                
+                                (if (pathnamep dictionary) (namestring dictionary) (namestring (filepathname dictionary)))
                                 (namestring inpath)
-                                (namestring (filepathname markers))
-                                
+                                (if (pathnamep markers) (namestring markers) (namestring (filepathname markers)))
                                 (namestring audio-outfile)
                                 (namestring residual-outfile)
                                 (namestring sdif-outfile)
@@ -102,14 +123,15 @@
                   (when mp-constraints (setf str (string+ str (format nil " --mpconstraint_path ~s" (if (pathnamep mp-constraints) (namestring mp-constraints) (namestring (filepathname mp-constraints)))))))
                   (when downsampling-factor (setf str (string+ str (format nil " --dsf ~d" downsampling-factor))))
                   (when logfile (setf str (string+ str (format nil " --logfile ~s" (namestring textlog-outfile)))))                        
-                  (print str)
-
+                  ;(print str)
                   ;(print outdir)
                   ;(print sdif-outfile)
                   ;(print audio-outfile)
                   ;(print residual-outfile)
-                  ;(om-cmd-line str *sys-console*)  ; *sys-console*
-                  ;(sys:run-shell-command str :wait nil) ;perhaps I can route this into the listener
+                  (print (string+ "OM-Pursuit command: ~s" str))
+                  (om-cmd-line str *sys-console* nil)  ; *sys-console*
+                  ;(sys:run-shell-command str :wait nil :output :stream) ;perhaps I can route this into the listener   
+       
                   (values (probe-file audio-outfile) (probe-file residual-outfile) (probe-file sdif-outfile))           
                   )
               (progn 
@@ -117,6 +139,59 @@
                 nil
                 ))
             )
+
+
+
+
+
+#|
+;attempts of getting the output of the terminal window back into the OM Listener.
+ 
+
+;perhaps (stream-read-line) does the job
+                 ; (sys:call-system-showing-output str :wait t :output-stream *om-stream* 
+		 ;			    :prefix ":: "
+		 ;			    #+win32 :current-directory #+win32 current-path)
+
+                  ;(sys:run-shell-command str :wait nil :output :stream)
+                  ;(let ((thestream (sys:run-shell-command str :wait nil :output :stream  :error-output :stream)))
+                  ;(pursuit-read-stream thestream "error"))
+                  ;(with-open-stream (thestream (sys:run-shell-command str :wait nil :output :stream  :error-output :stream)) (loop while 
+                  ;                                (print (read-line thestream))))
+                  ;(let ((thestream (sys:run-shell-command str :wait nil :output :stream  :error-output :stream)))
+                  ;  (format *om-stream* "~s" (pursuit-read-stream thestream "error")))      
+
+(defun pursuit-read-stream (thestream error-message)
+  (if (stream-eofp thestream)
+      (progn
+        (om-beep-msg (format nil error-message))
+        ;(om-abort)
+        )
+    (with-open-stream (thestream thestream) (loop while 
+                                                  (print (read-line thestream))))
+      )
+  )
+
+
+(multiple-value-bind (out err pid)
+    (sys:run-shell-command str
+			   :wait nil
+			   :output :stream
+			   :error-output :stream)
+  (with-open-stream (out (print out))
+    (with-open-stream (err (print err))
+      (values (print (read-line out)) (print (read-line err))))))
+
+
+(multiple-value-bind (out err pid)
+    (sys:run-shell-command "sh -c 'echo foo >&2; echo bar'"
+			   :wait nil
+			   :output :stream
+			   :error-output :stream)
+  (with-open-stream (out (print out))
+    (with-open-stream (err err)
+      (values (read-line out) (read-line err)))))
+|#
 
 (defmethod! get-sgnct-params ((self sdiffile) &optional mintime maxtime)
             :icon 04

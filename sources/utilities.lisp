@@ -1,4 +1,11 @@
-;AtomicOrchestrator, 2010 McGill University
+;************************************************************************
+; OM-Pursuit, library for dictionary-based sound modelling in OpenMusic *
+;      (c) 2011-2013 Marlon Schumacher (CIRMMT/McGill University)       *     
+;               https://github.com/marleynoe/OM-Pursuit                 *
+;                                                                       *
+;                DSP based on pydbm - (c) Graham Boyes                  *
+;                  https://github.com/gboyes/pydbm                      *
+;************************************************************************
 ;
 ;This program is free software; you can redistribute it and/or
 ;modify it under the terms of the GNU General Public License
@@ -16,7 +23,7 @@
 ;along with this program; if not, write to the Free Software
 ;Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307,10 USA.
 ;
-;Authors: M. Schumacher
+;Authors: M. Schumacher, G.Boyes
 
 (in-package :om)
 
@@ -268,6 +275,21 @@
 (defmethod get-editor-class ((self gesture-array)) 'gesture-editor)
 |#
 
+(defmethod! plot-dictionary-3D ((self sdiffile) (descriptor1 t) (descriptor2 t) (descriptor3 t) &key normalize)
+            :icon '(141)
+            :initvals '(nil nil nil nil)
+            :menuins (list (list 1 *ircamdescriptortypes*) (list 2 *ircamdescriptortypes*) (list 3 *ircamdescriptortypes*))
+            (let* ((xpoints (flat (getsdifdata self nil "1WMN" descriptor1 0 nil nil nil nil)))
+                   (ypoints (flat (getsdifdata self nil "1WMN" descriptor2 0 nil nil nil nil)))
+                   (zpoints (flat (getsdifdata self nil "1WMN" descriptor3 0 nil nil nil nil)))
+                   (thexpoints (if normalize (om-scale xpoints -1 1) xpoints))
+                   (theypoints (if normalize (om-scale ypoints -1 1) xpoints))
+                   (thezpoints (if normalize (om-scale zpoints -1 1) xpoints)))
+              (3dc-from-list  thexpoints theypoints thezpoints '3dc 10))
+            )
+                                
+
+
 ;should give the bpfs different colors depending on the amplitude
 
 ;%%%%%%%%%%%%%% HELPER FUNCTIONS %%%%%%%%%%%%%%%
@@ -432,6 +454,7 @@
               (if index (values (subseq string 0 index) (subseq string (+ index 1)))
                 (values string nil))))
 
+
 (defmethod! transratio ((midicent number))
             :icon '(141)  
             :initvals '(0)
@@ -439,7 +462,7 @@
             :numouts 1
             :doc "bla bla"
  (exp (* midicent 0.00057762265)
-       ))    
+       ))
 
 
 
@@ -517,8 +540,6 @@ Ex. (om-scale '(0 2 5) 0 100)  => (0 40 100)
 
 
 
-;;; For now we need to re-define samples->sec function
-
 (defmethod! bpf-colour ((bpf bpf) &key r g b)
             :icon '(402)
   (setf (bpfcolor bpf) (om-make-color (or r (om-random 0. 1.0))
@@ -577,7 +598,7 @@ Ex. (om-scale '(0 2 5) 0 100)  => (0 40 100)
           (directory (namestring src-root) :directories t))
     ))
 
-;============== stupid hack to override 10 decimals limit for BPFs ==============
+;==============  hack to override 10 decimals limit for BPFs ==============
 
 (defmethod check-decimals ((self bpf))
     (unless (and (integerp (decimals self))
@@ -603,7 +624,7 @@ Ex. (om-scale '(0 2 5) 0 100)  => (0 40 100)
             (let ((index (search char string)))
               (if index (values (subseq string 0 index) (subseq string (+ index 1)))
                 (values string nil))))
-
+                  
 ;=== get bpf points ======
 
 (defmethod! get-bpf-points ((self bpf-lib))
@@ -612,3 +633,30 @@ Ex. (om-scale '(0 2 5) 0 100)  => (0 40 100)
                     (point-pairs bpf)
                     ))
               )
+
+(defmethod! split-string-with-slash ((string string) (char string))
+            :numouts 2
+            (let ((index (search char string)))
+              (if index (values (subseq string 0 index) (subseq string (+ index 2)))
+                (values string nil))))
+
+;============ path-convert =============
+
+(defmethod! resolve-pathname ((filepaths pathname) (token string) (directory pathname))
+            (convert-pathname (namestring filepaths) token directory))
+
+(defmethod! resolve-pathname ((filepaths string) (token string) (directory pathname))
+            :icon 186
+            (let ((cleanedstring (second (multiple-value-list (split-string-with-slash filepaths token)))))
+              (string+ (namestring directory) cleanedstring)
+              ))
+
+(defmethod! resolve-pathname ((filepaths list) (token string) (directory pathname))
+            (mapcar (lambda (thepaths)
+                      (resolve-pathname thepaths token directory)) filepaths))
+
+(defmethod! resolve-sgn-paths ((self soundgrain-matrix) (token string) (directory pathname))
+            :icon 186
+            (let ((thenewpaths (resolve-pathname (filepath self) token directory)))
+              (modify-slot self 'filepath thenewpaths)
+              ))
