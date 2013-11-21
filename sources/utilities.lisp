@@ -275,6 +275,18 @@
 (defmethod get-editor-class ((self gesture-array)) 'gesture-editor)
 |#
 
+; this is how to do an each time loop with multiple outlets
+#|
+(loop for item in '(1 2 3) collect
+      (+ 1 2) into mydata
+      do
+      (print (+ 2 3))
+      collect 
+      (+ 3 4) into yourdata
+      finally return (list mydata yourdata)
+      )
+|#
+
 (defmethod! plot-dictionary-3D ((self sdiffile) (descriptor1 t) (descriptor2 t) (descriptor3 t) &key normalize)
             :icon '(141)
             :initvals '(nil nil nil nil)
@@ -288,7 +300,7 @@
               (3dc-from-list  thexpoints theypoints thezpoints '3dc 10))
             )
                                 
-
+; could be optimized by making new getsdifdata which doens't run three times but only once
 
 ;should give the bpfs different colors depending on the amplitude
 
@@ -633,6 +645,7 @@ Ex. (om-scale '(0 2 5) 0 100)  => (0 40 100)
                     (point-pairs bpf)
                     ))
               )
+
 
 (defmethod! split-string-with-slash ((string string) (char string))
             :numouts 2

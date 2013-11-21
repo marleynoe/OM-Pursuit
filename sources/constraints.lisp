@@ -87,6 +87,14 @@
                            :value value)
             )
 
+(defmethod! ctr-define ((constraint integer) (descriptor string) (order integer) (value t))
+            (make-instance 'sgn-constraint
+                           :constraint constraint
+                           :descriptor descriptor
+                           :order order
+                           :value value)
+            )
+
 (defmethod! ctr-conditional ((constraint symbol) (descriptor string) (order integer) (value t))
             :icon  22 ;02 ;20 
             :initvals '(nil "0" 0 nil)

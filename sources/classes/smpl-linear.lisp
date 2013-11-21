@@ -1,5 +1,5 @@
 ;******************************************************************
-;		     CLASS SMPL-1
+;		     CLASS SMPL-LINEAR
 ;******************************************************************
 
 (in-package :om)
@@ -9,14 +9,8 @@
 ;   GRAPHICALLY DEFINED
 
 
-(defclass! smpl-linear
-  (cs-evt) 			; INHERIT FROM CS-EVT
+(defclass! smpl-linear  (cs-evt)  		
   (
-
-; GLOBAL SLOTS (LIGHT BLUE, ON THE LEFT OF THE CLASS):
-;    THE METHOD BELOW TRANSFORMS THEM INTO GLOBAL SLOTS ("SHOW" UNCHEKED)
-;    ATTENTION: A GLOBAL SLOT SHOULD NOT HAVE AN INITARG
-
    ( source-code :initform
                  (load-buffer-textfile
                   (get-orc-source (get-orc "smpl-linear"))
@@ -40,7 +34,6 @@
    (InstID :initform 1  :allocation :class  :accessor InstID)
 
 ; LOCAL SLOTS (RED, CORRESPONDING TO THE P-FIELDS)
-;    ATTENTION: A GLOBAL SLOT SHOULD HAVE AN INITARG
 
   ( amp		:type number
 		:initarg :amp 
@@ -110,5 +103,17 @@
 ;-----------------------------------------------------------------------------
 "
    )
-  (:icon 1008)
+  (:icon 1010)
+  )
+
+
+(defmethod objfromobjs ((self soundgrain-matrix) (type smpl-linear))
+  (make-instance 'smpl-linear
+                 :numcols (print (numcols self))
+                 :e-dels (get-array-row self 'onset)
+                 :durs (get-array-row self 'duration)
+                 :amp (get-array-row self 'amplitude)
+                 :afil (filepath self) ;(get-array-row self 'filepath)
+                 :aenv (simple-bpf-from-list '(0 100) '(1000 1000) 'bpf 10)
+                 )
   )

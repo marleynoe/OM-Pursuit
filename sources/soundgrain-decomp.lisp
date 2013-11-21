@@ -81,15 +81,15 @@
 
                        (audio-outfile (if *automatic-rename* 
                                           (auto-rename (om-make-pathname :directory (append (pathname-directory outdir))
-                                                        :name (string+ name "_ompursuit_audio") :type "wav"))
+                                                        :name (string+ name "_ompursuit_audio") :type "aif"))
                                         (om-make-pathname :directory (append (pathname-directory outdir))
-                                                        :name (string+ name "_ompursuit_audio") :type "wav")))
+                                                        :name (string+ name "_ompursuit_audio") :type "aif")))
 
                        (residual-outfile (if *automatic-rename*
                                              (auto-rename (om-make-pathname :directory (append (pathname-directory outdir))
-                                                        :name (string+ name "_ompursuit_residual") :type "wav"))
+                                                        :name (string+ name "_ompursuit_residual") :type "aif"))
                                            (om-make-pathname :directory (append (pathname-directory outdir))
-                                                        :name (string+ name "_ompursuit_residual") :type "wav")))
+                                                        :name (string+ name "_ompursuit_residual") :type "aif")))
 
                        (textlog-outfile (if *automatic-rename*
                                             (auto-rename (om-make-pathname :directory (append (pathname-directory outdir))
@@ -139,8 +139,6 @@
                 nil
                 ))
             )
-
-
 
 
 

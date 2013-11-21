@@ -217,18 +217,8 @@ See http://sdif.sourceforge.net/standard/sdif-standard.html#Stream%20IDs%20Table
 (defmethod objfromobjs ((self sdiffile) (type soundgrain-matrix))
   (model-to-matrix self)
   )
-#|
-(defmethod objfromobjs ((self soundgrain-matrix) (type smpl-linear))
-  (make-instance 'smpl-linear
-                 :numcols (numcols self)
-                 :e-dels (onset self)
-                 :durs (duration self)
-                 :amp (amplitude self)
-                 :afil (filepath self)
-                 :aenv (simple-bpf-from-list '(0 100) '(1000 1000) 'bpf 10)
-                 )
-  )
 
+#|
 (defmethod objfromobjs ((self soundgrain-matrix) (type smpl-1))
   (make-instance 'smpl-1
                  :numcols (numcols self)
@@ -275,9 +265,10 @@ See http://sdif.sourceforge.net/standard/sdif-standard.html#Stream%20IDs%20Table
 |#
 
 (defmethod! modify-slot ((self class-array) (slot symbol) (value t))
-            :icon 335
-            (let* ((modifarray (clone self)))
+            :icon '(335)
+            (let ((modifarray (clone self)))
               (set-slot modifarray slot value)
+              (set-data modifarray)
               modifarray)
             )
 
