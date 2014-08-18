@@ -1,6 +1,6 @@
 ;************************************************************************
 ; OM-Pursuit, library for dictionary-based sound modelling in OpenMusic *
-;      (c) 2011-2013 Marlon Schumacher (CIRMMT/McGill University)       *     
+;      (c) 2011-2014 Marlon Schumacher (CIRMMT/McGill University)       *     
 ;               https://github.com/marleynoe/OM-Pursuit                 *
 ;                                                                       *
 ;                DSP based on pydbm - (c) Graham Boyes                  *
@@ -28,8 +28,16 @@
 (in-package :om)
 
 
+; perhaps call this 'build-database' or something more intuitive
+; sdiftypes should be given in the function already! as a variable (defvar)
+; compat
+
 (defmethod! pursuit-dictionary ((soundgrain-paths list) (sdifpath pathname) &key sdiftypes add-frames)
-            :icon 1
+            :icon 05
+            :initvals '(nil nil nil nil)
+            :indoc '("1" "path for resulting output sdiffile" "list of types for sdif frame+matrixtypes to be included in sdiffile" "add additional custom sdif frames")
+            :doc "The OM-Pursuit dictionary building function"
+            :outdoc '("dictionary as sdif file")
             (let ((sid-list (flat
                              (loop for path in soundgrain-paths
                                    for i from 1 to (length soundgrain-paths) collect
@@ -51,7 +59,7 @@
               ;(list sid-list sdifframelist)
             ))
 
-; this will need methods for lists of lists (to write the corpora)
+; this will need methods for lists of lists (to write the corpora) -> or otherwise when provided as flattended list? no corpus distinction!
 
 #|
 ;needs something like this for the header:

@@ -85,7 +85,7 @@
 (defmethod! in-files (&key (unix nil) (type nil) (directories nil) (files t) (resolve-aliases nil) (hidden-files nil) (path nil))
             :icon '(250)
             :doc "Returns a list of file pathnames. Opens a dialog window to choose the input-directory. If <unix> is T then the output files is formatted for Unix and system commands."
-            (let* ((thepath (or path (in-directory :unix unix)))
+            (let* ((thepath (or path (in-directories :unix unix)))
                   (thefilelist (om-directory thepath 
                                              :type type :directories directories :files files 
                                              :resolve-aliases resolve-aliases :hidden-files hidden-files)))

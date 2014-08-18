@@ -55,8 +55,7 @@
 
 (mapcar #'(lambda (file) (compile&load (om-relative-path '("sources") file )))
         '(
-          "array-tools"
-          
+          "array-tools"  
           "dispatch-cseq"
           "editors"
           "file-io"
@@ -68,6 +67,7 @@
           "sdif-tools"
           ;"sgnct"
           "soundgrain-decomp"
+          "pursuit-dictionary"
           "statistics"
           "utilities"
           ))

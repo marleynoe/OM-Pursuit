@@ -30,6 +30,7 @@
 
 (defmethod! ircamdescriptors ((path-to-exec pathname) (path-to-audio pathname) (path-to-config pathname))
             :icon 30
+            :outdoc '("sdiffile object")
             (let* ((exepath (namestring path-to-exec))
                   (audiopath (namestring path-to-audio))
                   (configpath (namestring path-to-config))
@@ -78,6 +79,7 @@
 
 
 (defmethod! desc->sig ((desc t))
+            :icon 05 
             :menuins (list (list 0 *ircamdescriptortypes*))
             desc)
             

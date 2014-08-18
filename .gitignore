@@ -4,17 +4,16 @@
 # *(Autosaved).* 
 
 
-
-
 # LispWorks files
+*.xfasl
+*.fasl
+*.nfasl
+*.ofasl
+*.ufasl
+*.lisp~
 
-.xfasl
-.fasl
-.nfasl
-.ofasl
-.ufasl
-.lisp~
-
-#Python
+# Python
 *.py~
 
+# Executable
+python/executable/dist/*
