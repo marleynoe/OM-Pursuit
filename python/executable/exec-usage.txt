@@ -1,25 +1,28 @@
-usage: SoundgrainDecomposition.py [-h]
-                                            [--dictionaries DICTIONARIES [DICTIONARIES ...]]
-                                            [--globscalar GLOBSCALAR]
-                                            target_path mod_outpath
-                                            res_outpath sdif_outpath
-                                            constraint_sdif mode cmax srr
+usage: OM-Pursuit.py [-h] [--constraint_path CONSTRAINT_PATH]
+                     [--mpconstraint_path MPCONSTRAINT_PATH] [--dsf DSF]
+                     [--logfile LOGFILE]
+                     dictionary_path target_path marker_path output_path
+                     res_output_path sdif_output_path max_iterations
 
-instrumentSoundgrainDecomposition
+OM-Pursuit
 
 positional arguments:
-  target_path           path to target sound file
-  mod_outpath           path to model output
-  res_outpath           path to residual output
-  sdif_outpath          path to sdif output
-  constraint_sdif       path to constraint sdif
-  mode                  decomposition mode
-  cmax                  maximum number of iterarions/atoms
-  srr                   signal-to-residual threshold
+  dictionary_path       Path to an OM-Pursuit dictionary SDIF file
+  target_path           Path to a sound file
+  marker_path           Path to a marker SDIF file
+  output_path           Path to write model sound file
+  res_output_path       Path to write residual sound file
+  sdif_output_path      Path to write OM-Pursuit model SDIF file
+  max_iterations        The maximum number of analysis iterations
 
 optional arguments:
   -h, --help            show this help message and exit
-  --dictionaries DICTIONARIES [DICTIONARIES ...]
-                        paths to dictionary files
-  --globscalar GLOBSCALAR
-                        global scaling factor for tvmp
+  --constraint_path CONSTRAINT_PATH
+                        Path to an OM-Pursuit constraint SDIF file
+  --mpconstraint_path MPCONSTRAINT_PATH
+                        Path to an OM-Pursuit analysis mp-constraint SDIF file
+  --dsf DSF             A positive int >= 1 The analysis procedure will down-
+                        sample the requisite audio files by this factor, e.g.
+                        44.1kHz files with a dsf argument of 2 will be
+                        processed at 22.05kHz
+  --logfile LOGFILE     Path to a log txt file
