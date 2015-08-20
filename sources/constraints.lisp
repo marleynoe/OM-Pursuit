@@ -73,10 +73,9 @@
 ;function that will return an instance of class 'sgn-constraint
 (defmethod! ctr-define ((constraint symbol) (descriptor string) (order integer) (value t))
             :icon  22 ;02 ;20 
-            :initvals '(nil "0" 0 nil)
-            :menuins (list (list 0 (list '("<" '<) '("<=" '<=) '(">" '>) '(">=" '>=)  '("==" '==) '("!=" '!=) '("W" 'W) '("B" 'B) ))
-                        ;(1 ( ("SpectralCentroid" "1SCN") ("SpectralKurtosis" "1SLK") ("SpectralRolloff" "1SLR") ("SpectralDecrease" "1SPD") )))
-                        (list 1 *ircamdescriptortypes*))
+            :initvals '(nil "0" 0 nil) ; shouldn't ORDER default to 1?
+            :menuins (list (list 0 (list '("<" '<) '("<=" '<=) '(">" '>) '(">=" '>=)  '("==" '==) '("!=" '!=) '("W" 'W) '("B" 'B) ))                      
+                           (list 1 *ircamdescriptortypes*))
 
             :indoc '("constraint as a symbol" "which descriptor to apply the constraint to" "an integer specifying the order" "the value for the constraint (static = number, dynamic = bpf)")
             :doc "Defines and returns an instance of sgn-constraint"
@@ -99,8 +98,7 @@
             :icon  22 ;02 ;20 
             :initvals '(nil "0" 0 nil)
             :menuins (list (list 0 (list '("<" '<) '("<=" '<=) '(">" '>) '(">=" '>=)  '("==" '==) '("!=" '!=) ));  '("W" 'W) '("B" 'B) ))
-                        ;(1 ( ("SpectralCentroid" "1SCN") ("SpectralKurtosis" "1SLK") ("SpectralRolloff" "1SLR") ("SpectralDecrease" "1SPD") )))
-                        (list 1 *ircamdescriptortypes*))
+                           (list 1 *ircamdescriptortypes*))
 
             :indoc '("constraint as a symbol" "which descriptor to apply the constraint to" "an integer specifying the order" "the value for the constraint (static = number, dynamic = bpf)")
             :doc "Defines and returns an instance of sgn-constraint"

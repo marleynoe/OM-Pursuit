@@ -32,6 +32,8 @@
 ; sdiftypes should be given in the function already! as a variable (defvar)
 ; compat
 
+
+; this function for now works without calling the ircamdescriptors (i.e. only using duration)
 (defmethod! pursuit-dictionary ((soundgrain-paths list) (sdifpath pathname) &key sdiftypes add-frames)
             :icon 05
             :initvals '(nil nil nil nil)
@@ -41,7 +43,7 @@
             (let ((sid-list (flat
                              (loop for path in soundgrain-paths
                                    for i from 1 to (length soundgrain-paths) collect
-                                  (make-instance 'sdifsid :id i :source (namestring path) :treeway (makestring 1)))
+                                  (make-instance 'sdifsid :id i :source (namestring path) :treeway (makestring 1))) ; all paths are corpus = 1?
                                      ))
                   (sdifframelist (flat
                                   (loop for path in soundgrain-paths
@@ -58,7 +60,6 @@
               (make-instance 'sdif-buffer :types thesdiftypes :nvts sid-list :lframes sdifframelist)
               ;(list sid-list sdifframelist)
             ))
-
 ; this will need methods for lists of lists (to write the corpora) -> or otherwise when provided as flattended list? no corpus distinction!
 
 #|
