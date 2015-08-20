@@ -1,0 +1,25 @@
+usage: SoundgrainDecomposition.py [-h]
+                                            [--dictionaries DICTIONARIES [DICTIONARIES ...]]
+                                            [--globscalar GLOBSCALAR]
+                                            target_path mod_outpath
+                                            res_outpath sdif_outpath
+                                            constraint_sdif mode cmax srr
+
+instrumentSoundgrainDecomposition
+
+positional arguments:
+  target_path           path to target sound file
+  mod_outpath           path to model output
+  res_outpath           path to residual output
+  sdif_outpath          path to sdif output
+  constraint_sdif       path to constraint sdif
+  mode                  decomposition mode
+  cmax                  maximum number of iterarions/atoms
+  srr                   signal-to-residual threshold
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --dictionaries DICTIONARIES [DICTIONARIES ...]
+                        paths to dictionary files
+  --globscalar GLOBSCALAR
+                        global scaling factor for tvmp

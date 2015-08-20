@@ -1,27 +1,16 @@
 ;************************************************************************
-; OM-Pursuit, library for dictionary-based sound modelling in OpenMusic *
-;      (c) 2011-2013 Marlon Schumacher (CIRMMT/McGill University)       *     
+;                              OM-Pursuit                               *
+;       library for dictionary-based sound modelling in OpenMusic       *
+;      (c) 2011-2014 Marlon Schumacher (CIRMMT/McGill University)       *     
 ;               https://github.com/marleynoe/OM-Pursuit                 *
 ;                                                                       *
 ;                DSP based on pydbm - (c) Graham Boyes                  *
 ;                  https://github.com/gboyes/pydbm                      *
 ;************************************************************************
 ;
-;This program is free software; you can redistribute it and/or
-;modify it under the terms of the GNU General Public License
-;as published by the Free Software Foundation; either version 2
-;of the License, or (at your option) any later version.
-;
-;See file LICENSE for further informations on licensing terms.
-;
 ;This program is distributed in the hope that it will be useful,
 ;but WITHOUT ANY WARRANTY; without even the implied warranty of
-;MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;GNU General Public License for more details.
-;
-;You should have received a copy of the GNU General Public License
-;along with this program; if not, write to the Free Software
-;Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307,10 USA.
+;MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 ;
 ;Authors: M. Schumacher, G.Boyes
 
@@ -55,17 +44,15 @@
 
 (mapcar #'(lambda (file) (compile&load (om-relative-path '("sources") file )))
         '(
+          "preferences"
           "array-tools"  
-          "dispatch-cseq"
           "editors"
           "file-io"
           "ircamdescriptors"
           "constraints"
-          "mapgrain"
-          "preferences"         
+          "mapgrain"             
           "score-tools"
           "sdif-tools"
-          ;"sgnct"
           "soundgrain-decomp"
           "pursuit-dictionary"
           "statistics"
@@ -108,7 +95,7 @@
 ; before distribution
 ; (clean-repo *om-pursuit-lib-path*) 
 
-; (set-lib-release 1.0) this doesn't work!
+; (set-lib-release 1.0) this doesn't work?
 
 (defun clean-repo (&optional dir)
   (let ((src-root (or dir (make-pathname :directory (butlast (pathname-directory *load-pathname*) 2)))))
@@ -136,6 +123,7 @@
           (directory (namestring src-root) :directories t))))
     ))
 
+; fix this here (with a version-specific variable)
 #|
 ; SPLASH SCREEN
 (om-message-dialog 

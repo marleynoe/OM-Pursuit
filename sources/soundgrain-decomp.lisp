@@ -131,6 +131,7 @@
                   (print (string+ "OM-Pursuit command: ~s" str))
                   (om-cmd-line str *sys-console* nil)  ; *sys-console*
                   ;(sys:run-shell-command str :wait nil :output :stream) ;perhaps I can route this into the listener   
+                  ;(sys:run-shell-command str :wait nil :output :stream :show-window t) ;perhaps I can route this into the listener   -> to display progress
        
                   (values (probe-file audio-outfile) (probe-file residual-outfile) (probe-file sdif-outfile))           
                   )

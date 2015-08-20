@@ -320,56 +320,6 @@ See http://sdif.sourceforge.net/standard/sdif-standard.html#Stream%20IDs%20Table
               )))
 |#
 
-#|
-;old verions
-(defmethod! get-sgn-params ((self sdiffile) &optional mintime maxtime)
-            :icon 04
-            :numouts 8
-            :outdoc '("numatoms" "onset" "duration" "magnitude" "norm" "corpus-index" "file-index" "filepath")
-            (let* ((sdiflist (flat (getsdifdata self 0 "XADS" "XSGM" nil nil nil mintime maxtime) 1))
-                   (translist (mat-trans sdiflist))
-                   (samplerate 16000)
-                   (reci-fs (/ 1 samplerate)))
-              (values 
-               (length sdiflist)                    ;numatoms             
-               (om* reci-fs (first translist))     ;onset (sec)
-               (om* reci-fs (second translist))      ;duration (sec)
-               (sixth translist)                    ;magnitude (lin)
-               (fifth translist)                    ;norm (lin)
-               (om-round (third translist))        ;corpus-index (int)
-               (om-round (fourth translist))         ;file-index (int)
-               (get-sgn-paths self (om-round (third translist)) (om-round (fourth translist))) ;filepath (string)
-              )))
-|#
-
-
-(defmethod objfromobjs ((self sgn-array) (type score-array))
-  (let* ((sgndata (data self))
-         (thepaths (loop for path in (filepath self) 
-                         collect
-                         (pathname-name path)))
-         (thepitches (loop for name in thepaths
-                           collect
-                           ;(read-from-string
-                        (string-to-number 
-                          (second (multiple-value-list (my-string-until-char (second (multiple-value-list (my-string-until-char (second (multiple-value-list (my-string-until-char (my-string-until-char name "-") "_"))) "_"))) "_"))))))
-         
-         (thevelocities (loop for name in thepaths
-                           collect
-                           (read-from-string
-                          ; (string-to-number 
-                            (my-string-until-char (second (multiple-value-list (my-string-until-char name "-")))"_"))))
-
-         (new (make-instance 'score-array
-                             :numcols (length (first sgndata))
-                             :onset (om-round (om* 1000 (first sgndata)))
-                             :duration (om-round (om* 1000 (second sgndata)))
-                             :midicent thepitches
-                             :velocity (print (om* (om-scale-exp (sgn-amplitude (fourth sgndata) (third sgndata)) 0 2 0.5) thevelocities))
-                             :channel (om+ (fifth sgndata) 1)
-                             ;:velocity (om-scale-exp (sgn-amplitude (fourth sgndata) (third sgndata)) 5 127 .7);om-scale-exp might be better
-                             )))
-    new))
 
 ; convert directly into chord-seq
 

@@ -59,14 +59,11 @@
          (thepitches (loop for name in thepaths
                            collect
                            ;(read-from-string
-                        (string-to-number 
-                          (second (multiple-value-list (my-string-until-char (second (multiple-value-list (my-string-until-char (second (multiple-value-list (my-string-until-char (my-string-until-char name "-") "_"))) "_"))) "_"))))))
-         
+                           (get-midicent name)))
+        
          (thevelocities (loop for name in thepaths
                            collect
-                           (read-from-string
-                          ; (string-to-number 
-                            (my-string-until-char (second (multiple-value-list (my-string-until-char name "-")))"_"))))
+                           (get-velocity name)))
 
          (new (make-instance 'score-array
                              :numcols (length (first sgndata))

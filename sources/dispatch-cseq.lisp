@@ -1,7 +1,7 @@
 (in-package :om)
 
 
-#|
+
 (defmethod! dispatch-chord-seq ((cseq chord-seq) (approx integer) &key port-list channel-list)
             (let* ((nvoices (/ approx 2))
                    (min-div (/ 200 approx)))
@@ -25,6 +25,8 @@
 (defun micro-channel (midic approx)
   (+ 1 (/ (mod midic 100) (/ 200 approx))))
 
+#|
+; throws an error for some reason
 
 (defmethod* PrepareToPlay ((player t) (self note) at &key approx port interval voice)
    (when (and *midiplayer* (not (memq (tie self) '(continue end))))
@@ -43,6 +45,7 @@
                           (first interval))
                        voice)))
          (playnote port chan pitch vel dur date voice)))))
+|#
 
 (defmethod! micro->multi ((score chord-seq) (approx integer) &key port-list channel-list)
             :icon '(141)
@@ -57,4 +60,3 @@
 (defmethod! micro->multi ((score list) (approx integer) &key port-list channel-list)
             (mapcar (lambda (thelist)
                       (micro-chordseq->multiseq thelist approx :port-list port-list :channel-list channel-list)) score))
-|#

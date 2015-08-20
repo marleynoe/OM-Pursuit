@@ -1,25 +1,43 @@
-;AtomicOrchestrator, 2010 McGill University
-;
-;This program is free software; you can redistribute it and/or
-;modify it under the terms of the GNU General Public License
-;as published by the Free Software Foundation; either version 2
-;of the License, or (at your option) any later version.
-;
-;See file LICENSE for further informations on licensing terms.
-;
-;This program is distributed in the hope that it will be useful,
-;but WITHOUT ANY WARRANTY; without even the implied warranty of
-;MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;GNU General Public License for more details.
-;
-;You should have received a copy of the GNU General Public License
-;along with this program; if not, write to the Free Software
-;Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307,10 USA.
-;
-;Authors: M. Schumacher
+; this file is to recover older OMato SDIF files
 
 (in-package :om)
 
+; conversion from SGN-Array to Score-Array doesn't work yet
+
+
+(defmethod! om-clip ((arg1 list) &optional min max)
+            (let ((minval (or min (list-min arg1)))
+                  (maxval (or max (list-max arg1))))            
+                  (mapcar #'(lambda (input)
+                               (clip input minval maxval)) arg1))
+              )
+
+(defun regroup-frames (glblist sgrlist)
+  (flat (loop for glbitem in glblist
+        for sgritem in sgrlist collect
+        (loop for subsgritem in sgritem collect
+              (flat (x-append glbitem subsgritem))
+              )
+        ) 1)
+  )
+
+
+
+#|
+              (values 
+               (length sdiflist)                    ;numatoms             
+               (om* reci-fs (first translist))     ;onset (sec)
+               (om* reci-fs (second translist))      ;duration (sec)
+               (sixth translist)                    ;magnitude (lin)
+               (fifth translist)                    ;norm (lin)
+               (om-round (third translist))        ;corpus-index (int)
+               (om-round (fourth translist))         ;file-index (int)
+               (get-sgn-paths self (om-round (third translist)) (om-round (fourth translist))) ;filepath (string)
+              )))
+|#
+
+
+;old verions
 
 ; ---------------------------
 
@@ -166,3 +184,74 @@
 
 (defun sgn-amplitude (norm magnitude)
   (om* (om/ 1 norm) (om-abs magnitude)))
+
+;-------------
+
+(defmethod! dispatch-chord-seq ((cseq chord-seq) (approx integer) &key port-list channel-list)
+            (let* ((nvoices (/ approx 2))
+                   (min-div (/ 200 approx)))
+              (loop for i from 0 to (1- nvoices) collect
+                    (let ((cs (clone cseq)))
+                      (loop for chord in (inside cs) do
+                            (loop for note in (inside chord) do
+                                  (let* ((approx-pitch (* min-div (round (midic note) min-div)))
+                                         (cs-num (round (mod approx-pitch 100) min-div)))
+                                    (unless (= i cs-num)
+                                      (setf (inside chord) (remove note (inside chord))))))
+                            (unless (inside chord)
+                              (setf (inside cs) (remove chord (inside cs)))))
+                      (adjust-extent cs)
+                      (QNormalize cs)
+                      (set-port cs (or (nth i port-list) 0))
+                      (set-channel cs (or (nth i channel-list) 1))
+                      cs))
+              ))
+
+(defun micro-channel (midic approx)
+  (+ 1 (/ (mod midic 100) (/ 200 approx))))
+
+;------
+
+(defun get-midicent (string)
+  (string-to-number (my-string-until-char (second (multiple-value-list (my-string-until-char string "_"))) "-")))
+
+(defun get-velocity (string)
+  (string-to-number (my-string-until-char (second (multiple-value-list (my-string-until-char string "-"))) "_")))
+
+#|
+; throws an error for some reason
+
+(defmethod* PrepareToPlay ((player t) (self note) at &key approx port interval voice)
+   (when (and *midiplayer* (not (memq (tie self) '(continue end))))
+     (setf port (or port (port self)))
+     (let ((chan (+ (1- (chan self))  (1- (micro-channel (approx-m  (midic self) approx) approx))))
+           (pitch (truncate (approx-scale (get-current-scale approx) (midic self)) 100))
+           (vel (vel self))
+           (dur (- (real-dur self) 2))
+           (date (+ *MidiShare-start-time* at))
+           (voice (or voice 0)))
+       (if interval
+         (let ((newinterval (interval-intersec interval (list at (+ at (- (real-dur self) 1)))))) 
+           (when newinterval
+             (playnote port chan pitch vel (- (second newinterval) (first newinterval) 1) 
+                       (- (+  *MidiShare-start-time* (first newinterval)) 
+                          (first interval))
+                       voice)))
+         (playnote port chan pitch vel dur date voice)))))
+|#
+
+(defmethod! micro->multi ((score chord-seq) (approx integer) &key port-list channel-list)
+            :icon '(141)
+            (let* ((chordseqlist (dispatch-chord-seq score approx :port-list port-list :channel-list channel-list))
+                   (micromulti (make-instance 'multi-seq
+                                              :chord-seqs chordseqlist)))
+              micromulti))
+
+(defmethod! micro->multi ((score voice) (approx integer) &key port-list channel-list)
+            (micro->multi (ObjfromObjs score (mki 'chord-seq)) approx :port-list port-list :channel-list channel-list))
+
+(defmethod! micro->multi ((score list) (approx integer) &key port-list channel-list)
+            (mapcar (lambda (thelist)
+                      (micro-chordseq->multiseq thelist approx :port-list port-list :channel-list channel-list)) score))
+
+

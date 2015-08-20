@@ -34,8 +34,6 @@
                                             :ties ties
                                             )))
               thevoice))
-
-
               
 
 (defmethod objfromobjs ((self chord-seq) (type voice))
@@ -113,9 +111,6 @@
 
 (defmethod objfromobjs ((self voice) (type score-array))
   (Objfromobjs (Objfromobjs self (mki 'chord-seq)) (mki 'score-array)))
-
-(defmethod! micro->multi ((score voice) (approx integer) &key port-list channel-list)
-            (micro->multi (ObjfromObjs score (mki 'chord-seq)) approx :port-list port-list :channel-list channel-list))
 
 
 ; %%%%%%%%%%%%% DIRECTLY FROM PARTIALS %%%%%%%%%%%%%%%%%%%
