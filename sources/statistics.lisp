@@ -101,22 +101,7 @@
                   sum (* item item))
                   )
 
-(defun clip (val &optional (min 0.0) (max 1.0))
-" If val is below min, return min,
-  if val is above max, return max,
-  otherwise return val.
-" 
-  (let ((from min) (to max))
-    (when (> min max) (setf from max) (setf to min))
-    (cond
-     ((> val to) to)
-     ((< val from) from)
-     (t val))))
 
-(defmethod! om-clip ((arg1 list) &optional min max)
-            (let ((minval (or min (list-min arg1)))
-                  (maxval (or max (list-max arg1))))            
-                  (mapcar #'(lambda (input)
-                               (clip input minval maxval)) arg1))
-              )
+
+
 

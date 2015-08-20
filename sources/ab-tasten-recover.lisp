@@ -5,13 +5,6 @@
 ; conversion from SGN-Array to Score-Array doesn't work yet
 
 
-(defmethod! om-clip ((arg1 list) &optional min max)
-            (let ((minval (or min (list-min arg1)))
-                  (maxval (or max (list-max arg1))))            
-                  (mapcar #'(lambda (input)
-                               (clip input minval maxval)) arg1))
-              )
-
 (defun regroup-frames (glblist sgrlist)
   (flat (loop for glbitem in glblist
         for sgritem in sgrlist collect
