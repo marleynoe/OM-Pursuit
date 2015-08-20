@@ -1,3 +1,8 @@
+'''
+    OMPursuit.py
+    Created by Graham Boyes 01-10-2013   
+ '''
+
 import numpy as np
 import scipy.signal as sig
 import scipy.linalg as linalg
@@ -73,7 +78,7 @@ class OMPAnalysisConstraint(OMPursuitAbstractConstraint):
 
 
 class OMPursuitConstraint(OMPursuitAbstractConstraint):
-    '''Represents a set or vector calculation on the collection of available soundgrains'''
+    '''Represents a set or vector operation on the collection of available soundgrains'''
 
     def __init__(self, constraintString):
 
@@ -246,7 +251,7 @@ class OMPursuitSoundgrain:
 
         if downsampleFactor > 1:
             #x = sig.resample(x, len(x)/downsampleFactor) #faster on white noise but not on practical signals?
-            x = sig.decimate(x, downsampleFactor)
+            X = Sig.decimate(x, downsampleFactor)
             self.samplerate = fs / downsampleFactor
         elif downsampleFactor < 1:
             raise Exception("Upsampling not permitted")
