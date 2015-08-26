@@ -1,4 +1,11 @@
-;AtomicOrchestrator, 2010 McGill University
+;************************************************************************
+; OM-Pursuit, library for dictionary-based sound modelling in OpenMusic *
+;      (c) 2011-2013 Marlon Schumacher (CIRMMT/McGill University)       *     
+;               https://github.com/marleynoe/OM-Pursuit                 *
+;                                                                       *
+;                DSP based on pydbm - (c) Graham Boyes                  *
+;                  https://github.com/gboyes/pydbm                      *
+;************************************************************************
 ;
 ;This program is free software; you can redistribute it and/or
 ;modify it under the terms of the GNU General Public License
@@ -16,7 +23,7 @@
 ;along with this program; if not, write to the Free Software
 ;Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307,10 USA.
 ;
-;Authors: M. Schumacher
+;Authors: M. Schumacher, G.Boyes
 
 (in-package :om)
 
@@ -24,7 +31,9 @@
 
 (defmethod! replace-string ((string string) (char string))
             :numouts 2
-            (let ((index (search char string)))
+            (let* ((index (search char string))
+                  (nustring string))
+              
               (if index 
                   (progn
                     (setf nustring (format nil "~a,~a" (subseq string 0 index) (subseq string (+ index 3))))
@@ -35,7 +44,7 @@
 
 ;=== Converts an item into a string
 (defun itemtostring (anything)
-  (format nil "~a" anything)
+  (format nil "~a" anything) ; was ~s
     )
 
 ;%%%%%%%%%%%%%% PLOTTING FUNCTIONS %%%%%%%%%%%%%%%
@@ -52,7 +61,7 @@
    t))
 
 (defun makestring (anything)
-  (format nil "~a" anything)
+  (format nil "~s" anything)
     )
 
 (defmethod! clearmaq ((self OMMaquette))
@@ -130,6 +139,7 @@
     (simple-bpf-from-list (list xpos x-extend x-extend xpos xpos) (list ypos ypos y-extend y-extend ypos) 'bpc 10)
     ))
 
+
 (defun draw-centered-rectangle (position horizontalsize verticalsize)
   (let* ((xpos (first position))
          (ypos (second position))
@@ -173,120 +183,6 @@
             (mapcar (lambda (thepaths)
                       (convert-paths thepaths discard-levels new-dir keep-levels)) self))
                    
-
-; %%%%%%%%%%%% FOR DRAWING BPCS (RECTANGLES) REPRESENTING GABOR SPACES %%%%%%%%%% 
-
-(defmethod! gabor-spaces ((markers list) (bpfs list) (scales number) (ranges number))
-            :icon 04
-            :numouts 3
-            (let* ((xmin (list-min markers))
-                   (thelist       
-                   (loop for marker in markers collect
-                         (loop for bpf in bpfs collect
-                               (if (inbetween? marker (x-points bpf))
-                                   (let* ((bpfdur (get-bpf-dur bpf))
-                                          (xextend (* bpfdur scales))
-                                          (xmax (+ marker xextend))
-                                          (ymin (- (list-min (y-points bpf)) (* 0.5 ranges)))
-                                          (ymax (+ (list-max (y-points bpf)) (* 0.5 ranges))))
-                                     (unless (> xmax (list-max (x-points bpf)))
-                                       (list (draw-centered-rectangle 
-                                              (list marker (x-transfer bpf (+ marker (* 0.5 xextend))))
-                                              xextend
-                                              ranges)
-                                             xmax
-                                             ymin
-                                             ymax)))
-                                     ))))
-                   (thetranslist (mat-trans (remove nil (flat thelist 1)))))
-               (values (bpf-colour (first thetranslist) :r (om-random 0.5 1.0) :g (om-random 0.5 1.0) :b (om-random 0.5 1.0))
-                      (list
-                        xmin (list-max (second thetranslist)))
-                      (list
-                       (list-min (third thetranslist)) (list-max (fourth thetranslist)))
-                      )
-               ))
-
-(defmethod! gabor-spaces ((markers list) (bpfs list) (scales list) (ranges list))
-            (let ((theresult
-                   (loop 
-                   ; for marker in markers
-                    for scale in scales
-                    for range in ranges
-                         collect
-                         (multiple-value-list (gabor-spaces markers bpfs scale range))))
-                         )
-              (let* ((thetranslist (mat-trans theresult))
-                     (thex (mat-trans (second thetranslist)))
-                     (they (mat-trans (third thetranslist))))               
-              (values (flat (first thetranslist))
-                      (list (list-min (first thex)) (list-max (second thex)))
-                      (list (list-min (first they)) (list-max (second they))))
-              )))
-
-; %%%%%%%%%%%% for drawing tfregions %%%%%%%%%%%%% COULDN'T I USE THIS SIMPLY FOR THE DRAWING INTO THE MAQUETTE?
-
-(defmethod! draw-tfregions ((markers list) (bpfs list) (scales number) (ranges number))
-            :icon 04
-            :numouts 5
-            (let* ((xmin (list-min markers))
-                   (thelist       
-                   (loop for marker in markers collect
-                         (loop for bpf in bpfs collect
-                               (if (inbetween? marker (x-points bpf))
-                                   (let* ((bpfdur (get-bpf-dur bpf))
-                                          (xextend (* bpfdur scales))
-                                          (xmin marker)
-                                          (xmax (+ marker xextend))
-                                          (ymin (- (list-min (y-points bpf)) (* 0.5 ranges)))
-                                          (ymax (+ (list-max (y-points bpf)) (* 0.5 ranges))))
-                                     ;(unless (> xmax (list-max (x-points bpf)))
-                                       (list (make-centered-temporalbox
-                                              (list marker (x-transfer bpf (+ marker (* 0.5 xextend))))
-                                              xextend
-                                              ranges)
-                                             xmin
-                                             xmax
-                                             ymin
-                                             ymax);)
-                                     ;(print bpfdur)
-                                     )
-                                     ))))
-                   (thetranslist (mat-trans (remove nil (flat thelist 1)))))
-              #|
-              (values  (bpf-colour (first thetranslist) :r (om-random 0.5 1.0) :g (om-random 0.5 1.0) :b (om-random 0.5 1.0))
-                        (list
-                       xmin (list-max (second thetranslist)))
-                      (list
-                       (list-min (third thetranslist)) (list-max (fourth thetranslist)))
-                       |#
-              
-              (values thetranslist
-                      (second thetranslist)
-                      (third thetranslist)
-                      (fourth thetranslist)
-                      (fifth thetranslist)
-                      )
-               ))
-#|
-(defmethod! make-tfregions ((markers list) (bpfs list) (scales list) (ranges list))
-            (let ((theresult
-                   (loop 
-                   ; for marker in markers
-                    for scale in scales
-                    for range in ranges
-                         collect
-                         (multiple-value-list (make-tf-regions markers bpfs scale range))))
-                         )
-              (let* ((thetranslist (mat-trans theresult))
-                     (thex (mat-trans (second thetranslist)))
-                     (they (mat-trans (third thetranslist))))               
-              (values (flat (first thetranslist))
-                      (list (list-min (first thex)) (list-max (second thex)))
-                      (list (list-min (first they)) (list-max (second they))))
-              )))
-|#
-
 
 (defmethod! find-bpflib-dimensions (bpflibs)
             :numouts 4
@@ -379,6 +275,33 @@
 (defmethod get-editor-class ((self gesture-array)) 'gesture-editor)
 |#
 
+; this is how to do an each time loop with multiple outlets
+#|
+(loop for item in '(1 2 3) collect
+      (+ 1 2) into mydata
+      do
+      (print (+ 2 3))
+      collect 
+      (+ 3 4) into yourdata
+      finally return (list mydata yourdata)
+      )
+|#
+
+(defmethod! plot-dictionary-3D ((self sdiffile) (descriptor1 t) (descriptor2 t) (descriptor3 t) &key normalize)
+            :icon '(141)
+            :initvals '(nil nil nil nil)
+            :menuins (list (list 1 *ircamdescriptortypes*) (list 2 *ircamdescriptortypes*) (list 3 *ircamdescriptortypes*))
+            (let* ((xpoints (flat (getsdifdata self nil "1WMN" descriptor1 0 nil nil nil nil)))
+                   (ypoints (flat (getsdifdata self nil "1WMN" descriptor2 0 nil nil nil nil)))
+                   (zpoints (flat (getsdifdata self nil "1WMN" descriptor3 0 nil nil nil nil)))
+                   (thexpoints (if normalize (om-scale xpoints -1 1) xpoints))
+                   (theypoints (if normalize (om-scale ypoints -1 1) xpoints))
+                   (thezpoints (if normalize (om-scale zpoints -1 1) xpoints)))
+              (3dc-from-list  thexpoints theypoints thezpoints '3dc 10))
+            )
+                                
+; could be optimized by making new getsdifdata which doens't run three times but only once
+
 ;should give the bpfs different colors depending on the amplitude
 
 ;%%%%%%%%%%%%%% HELPER FUNCTIONS %%%%%%%%%%%%%%%
@@ -404,24 +327,6 @@
   (read-from-string (find-in-nvtlist (getnvtlist sdiffile) "sample rate")))
 
 ;%%%%%%%%%%%%%% FORMATTING FUNCTIONS %%%%%%%%%%%%%%%
-
-(defmethod! markers->frames ((self list) &key samplerate)
-            :icon '(141)
-            (when (listp (first self))
-              (setf out-array (adt-deep-format (om-round (sec->samples self (or samplerate *audio-sr*))))))
-            (when (numberp (first self))
-              (setf out-array (adt-format (om-round (sec->samples self (or samplerate *audio-sr*))))))
-            (when (sound-p (first self))
-              (setf out-array (adt-deep-format (om-round
-                               (loop for snd in self collect
-                                     (sec->samples (markers snd) (om-sound-sample-rate snd)))))))
-              out-array
-              )
-
-(defmethod! markers->frames ((self sound) &key samplerate)
-                   (let ((out-array (python-format (om-round (sec->samples (markers self) (om-sound-sample-rate self))))))
-            out-array
-            ))
 
 (defmethod sound-p ((self sound)) t)
 (defmethod sound-p ((self t)) nil) 
@@ -475,7 +380,7 @@
 
 
 ;;; --- format for the python-executable -----
-
+#|
 (defun python-deep-format (input-list)
   (setf thestring (format nil "[~a" (python-format (car input-list))))
   (loop for item in (cdr input-list) collect
@@ -522,11 +427,8 @@
 (defun adt-deep-format (input-list)
   (python-deep-format input-list))
 
+|#
 
-(defun om-float (input)
-  (loop for item in input collect
-        (float item)
-        ))
 
 ;-------------------
 
@@ -564,6 +466,7 @@
               (if index (values (subseq string 0 index) (subseq string (+ index 1)))
                 (values string nil))))
 
+
 (defmethod! transratio ((midicent number))
             :icon '(141)  
             :initvals '(0)
@@ -571,7 +474,7 @@
             :numouts 1
             :doc "bla bla"
  (exp (* midicent 0.00057762265)
-       ))    
+       ))
 
 
 
@@ -611,6 +514,7 @@ Ex. (om-scale '(0 2 5) 0 100)  => (0 40 100)
                  ))
 |#
 
+#|
 (defmethod! gen-window ((window t) &key (id "?") (maxamp 1.0) (size 4097) (decimals 10) (params 1))
             :icon '(209)
             :initvals '("Triangle" "?" 1.0 4097 10 1)
@@ -644,119 +548,9 @@ Ex. (om-scale '(0 2 5) 0 100)  => (0 40 100)
              ((or (equal window "Line") (equal window 11))
               (make-cs-table 'Gen-07  (list 0 (1- size)) (list maxamp maxamp) decimals id size))
              ))
-
-
-
-
-(defmethod! sound->envelope ((self sound) (resolution number) &key (filtertype "lowpass") (windowsize 3) (recursions 5) (unit "linear"))
-;based samples + samplerate  I can determine a bw in Hz (or samplerate of the Env-follower)
-            :icon '(141) 
-            :initvals '(nil nil "lowpass" 3 5)
-            :menuins '((2 (("lowpass" "lowpass") ("mean" "mean") ("median" "median")))
-                       (5 (("linear" "linear") ("dbfs" "dbfs"))))
-
-            (let* ((thesamples (sound-points self resolution))
-                   (sqrt-samples (mapcar (lambda (samples)
-                                           (sqrt samples)) (om* thesamples thesamples))))
-              (cond ((equal filtertype "lowpass")
-                     (setf envelope (filtres::low-pass-rec sqrt-samples windowsize recursions)))
-                    ((equal filtertype "mean")
-                     (setf envelope (filtres::mean-filter-rec sqrt-samples windowsize recursions)))
-                    ((equal filtertype "median")
-                     (setf envelope (filtres::median-filter-rec sqrt-samples windowsize recursions))))
-              (let* ((theenvelope
-                     (if (equal unit "dbfs")
-                         (lin->db envelope)
-                       envelope))
-                     (thedur (sound-dur self))
-                    (thexpoints (arithm-ser 0 thedur (om/ thedur resolution) thedur)))
-                (simple-bpf-from-list thexpoints theenvelope 'bpf 10)
-                )))
-
-
-
-
-
-;;; For now we need to re-define samples->sec function
-
-#|
-;;; SAMPLES / SECONDS
-(defmethod! samples->sec ((samples number) &optional samplerate)
-          :icon 141 
-          :initvals '(0 nil)
-          :indoc '("number of samples" "sample rate (Hz)")
-          :numouts 1
-          :doc "Converts <samples> to a time (or duration) in seconds depending on <samplerate>.
-
-If <samplerate> is NIL, the OM default sample rate is used to calculate the time."
-          (float (/ samples (or samplerate *audio-sr*)))
-          )
-
-(defmethod! samples->sec ((samples list) &optional samplerate)
-   (mapcar #'(lambda (input)
-               (samples->sec input samplerate)) samples))
-
-(defmethod! sec->samples ((secs number) &optional samplerate) 
-          :icon 141  
-          :initvals '(0 nil)
-          :indoc '("duration (s)" "sample rate (Hz)")
-          :numouts 1
-          :doc "Converts <secs> to a number of samples depending on <samplerate>.
-
-If <samplerate> is NIL, the OM default sample rate is used to calculate the samples."
-          (float (* secs (or samplerate *audio-sr*))))
-
-(defmethod! sec->samples ((secs list) &optional samplerate) 
-          (mapcar #'(lambda (input)
-                      (sec->samples input samplerate)) secs)
-          )
 |#
 
-#|
-(defmethod! draw-searchspace ((self list) (searchspace number))
-            :numouts 3
-            (let* ((thelist  
-                   (loop for bpf in self collect
-                         (let* ((lowerpoints (y-offset bpf (* -1 searchspace)))
-                                (upperpoints (y-offset bpf searchspace))
-                                (xmin (list-min (first lowerpoints)))
-                                (xmax (list-max (first lowerpoints)))
-                                (ymin (list-min (second lowerpoints)))
-                                (ymax (list-max (second upperpoints)))
-                                )
-                           
-                           (list 
-                            (simple-bpf-from-list (x-append (first upperpoints) (reverse (first lowerpoints))) (x-append (second upperpoints) (reverse (second lowerpoints))) 'bpc (decimals bpf))
-                            (list xmin xmax)
-                            (list ymin ymax))
-                     )))
-                   (thetranslist (mat-trans thelist)))
-              (let ((xtrans (mat-trans (second thetranslist)))
-                    (ytrans (mat-trans (third thetranslist))))
-              (values (first thetranslist) 
-                      (list
-                       (list-min (first xtrans)) (list-max (second xtrans)))
-                      (list
-                       (list-min (first ytrans)) (list-max (second ytrans)))
-                      )))
-              )
 
-(defmethod! draw-searchspaces ((markers list) (bpfs list) (searchparam list))
-            (let ((theresult
-                   (loop for marker in markers
-                         for param in searchparam
-                         collect
-                         (multiple-value-list (draw-searchspaces marker bpfs param))))
-                         )
-              (let* ((thetranslist (mat-trans theresult))
-                     (thex (mat-trans (second thetranslist)))
-                     (they (mat-trans (third thetranslist))))               
-              (values (flat (first thetranslist))
-                      (list (list-min (first thex)) (list-max (second thex)))
-                      (list (list-min (first they)) (list-max (second they))))
-              )))
-
-|#
 
 (defmethod! bpf-colour ((bpf bpf) &key r g b)
             :icon '(402)
@@ -800,13 +594,28 @@ If <samplerate> is NIL, the OM default sample rate is used to calculate the samp
             )
 |#
 
+;this function removes aif and wav files from a directory
 
-;============== stupid hack to override 10 decimals limit for BPFs ==============
+(defun clean-soundfiles (&optional dir)
+  (let ((src-root (or dir (make-pathname :directory (butlast (pathname-directory *load-pathname*) 2)))))
+    (mapc #'(lambda (file) 
+              (if (system::directory-pathname-p file)
+                  (clean-files file)
+                (when (and (pathname-type file)
+                           (or (string-equal (pathname-type file) "aif")
+                               (string-equal (pathname-type file) "wav")))
+                  (print (concatenate 'string "Deleting " (namestring file) " ..."))
+                  (delete-file file)
+                  )))
+          (directory (namestring src-root) :directories t))
+    ))
+
+;==============  hack to override 10 decimals limit for BPFs ==============
 
 (defmethod check-decimals ((self bpf))
     (unless (and (integerp (decimals self))
                  (> (decimals self) 0) 
-                 (<= (decimals self) 10))
+                 (<= (decimals self) 15))
     (cond ((not (integerp (decimals self)))
            (om-beep-msg "BPF decimals must be an integer value!")
            (setf (slot-value self 'decimals) 0))
@@ -817,7 +626,50 @@ If <samplerate> is NIL, the OM default sample rate is used to calculate the samp
 
 ;==============
 
-; Utility functions
+; Utility string functions
 
 (defun find-string-in-list (string list)
 (position string list :test #'string-equal))
+
+(defmethod! split-string ((string string) (char string))
+            :numouts 2
+            (let ((index (search char string)))
+              (if index (values (subseq string 0 index) (subseq string (+ index 1)))
+                (values string nil))))
+                  
+;=== get bpf points ======
+
+(defmethod! get-bpf-points ((self bpf-lib))
+            (let ((bpflist (bpf-list self)))
+                    (loop for bpf in bpflist collect
+                    (point-pairs bpf)
+                    ))
+              )
+
+
+(defmethod! split-string-with-slash ((string string) (char string))
+            :numouts 2
+            (let ((index (search char string)))
+              (if index (values (subseq string 0 index) (subseq string (+ index 2)))
+                (values string nil))))
+
+;============ path-convert =============
+
+(defmethod! resolve-pathname ((filepaths pathname) (token string) (directory pathname))
+            (convert-pathname (namestring filepaths) token directory))
+
+(defmethod! resolve-pathname ((filepaths string) (token string) (directory pathname))
+            :icon 186
+            (let ((cleanedstring (second (multiple-value-list (split-string-with-slash filepaths token)))))
+              (string+ (namestring directory) cleanedstring)
+              ))
+
+(defmethod! resolve-pathname ((filepaths list) (token string) (directory pathname))
+            (mapcar (lambda (thepaths)
+                      (resolve-pathname thepaths token directory)) filepaths))
+
+(defmethod! resolve-sgn-paths ((self soundgrain-matrix) (token string) (directory pathname))
+            :icon 186
+            (let ((thenewpaths (resolve-pathname (filepath self) token directory)))
+              (modify-slot self 'filepath thenewpaths)
+              ))

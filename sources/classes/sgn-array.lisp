@@ -26,12 +26,6 @@
            (:icon 03)
            )
 
-(defclass! sgn-array2 (soundgrain-array)
-           (
-            )
-           (:icon 03)
-           )
-
 
 #| ; for now deactivated (or overwritten)
 (defmethod objfromobjs ((self sgn-array) (type score-array))
@@ -65,14 +59,11 @@
          (thepitches (loop for name in thepaths
                            collect
                            ;(read-from-string
-                        (string-to-number 
-                          (second (multiple-value-list (my-string-until-char (second (multiple-value-list (my-string-until-char (second (multiple-value-list (my-string-until-char (my-string-until-char name "-") "_"))) "_"))) "_"))))))
-         
+                           (get-midicent name)))
+        
          (thevelocities (loop for name in thepaths
                            collect
-                           (read-from-string
-                          ; (string-to-number 
-                            (my-string-until-char (second (multiple-value-list (my-string-until-char name "-")))"_"))))
+                           (get-velocity name)))
 
          (new (make-instance 'score-array
                              :numcols (length (first sgndata))
@@ -120,7 +111,7 @@
 
 
 ; %%%%%%%%%%%% OBJFROMOBJS for Chroma classes
-
+#|
 (defmethod objfromobjs ((self sgn-array) (type smpl-1))
   (let* ((sgndata (data self))
          (paths (seventh sgndata))
@@ -136,7 +127,7 @@
                              :wrap 0
                              )))
     new))
-
+|#
 
 
 #|

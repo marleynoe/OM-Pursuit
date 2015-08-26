@@ -1,3 +1,30 @@
+;************************************************************************
+; OM-Pursuit, library for dictionary-based sound modelling in OpenMusic *
+;      (c) 2011-2013 Marlon Schumacher (CIRMMT/McGill University)       *     
+;               https://github.com/marleynoe/OM-Pursuit                 *
+;                                                                       *
+;                DSP based on pydbm - (c) Graham Boyes                  *
+;                  https://github.com/gboyes/pydbm                      *
+;************************************************************************
+;
+;This program is free software; you can redistribute it and/or
+;modify it under the terms of the GNU General Public License
+;as published by the Free Software Foundation; either version 2
+;of the License, or (at your option) any later version.
+;
+;See file LICENSE for further informations on licensing terms.
+;
+;This program is distributed in the hope that it will be useful,
+;but WITHOUT ANY WARRANTY; without even the implied warranty of
+;MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;GNU General Public License for more details.
+;
+;You should have received a copy of the GNU General Public License
+;along with this program; if not, write to the Free Software
+;Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307,10 USA.
+;
+;Authors: M. Schumacher, G.Boyes
+
 (in-package :om)
 
 ;%%%%%%%%%% STATISTICAL FUNCTIONS %%%%%%%%%%%
@@ -45,6 +72,10 @@
 (defun median (list)
   (nth (round (/ (length list) 2)) (sort list '<)))
 
+(defun om-float (input)
+  (loop for item in input collect
+        (float item)
+        ))
 
 (defun om-sqrt (list)
   (mapcar #'(lambda (theitems)
@@ -65,7 +96,7 @@
                   sum item)
                   )
 ; squared sum
-(defmethod! om-sum2 ((self list))
+(defmethod! om-sum^2 ((self list))
                   (loop for item in self
                   sum (* item item))
                   )
@@ -88,71 +119,4 @@
                   (mapcar #'(lambda (input)
                                (clip input minval maxval)) arg1))
               )
-
-;##### DESCRIPTORS ########
-
-(defmethod! sox-centroid ((freqs list) (amps list))
-           (/
-            (loop for x in freqs 
-                  for y in amps
-                  finally
-                  sum (* x y)
-                  )
-            (+ (om-sum amps) 0.00000001) ;avoid division by zero
-           ))
-
-
-(defmethod! sox-spectral-spread ((freqs list) (amps list) (centroid number))
-           (/
-            (loop for x in freqs 
-                  for y in amps
-                  finally
-                  sum (* (* (- x centroid) (- x centroid)) y)
-                  )
-            (+ (om-sum amps) 0.00000001) ;avoid division by zero
-           ))
-
-(defmethod! sox-spectral-decrease ((freqs list) (amps list))
-           (let ((a1 (car amps)))
-            (/
-            (loop for f in freqs 
-                  for a in amps
-                  finally
-                  sum (- a a1)
-                  )
-            (om+ (loop for a in amps
-                  for b in (cdr amps)
-                  finally
-                  sum (* a b)
-                  )
-                 0.00000001) ; avoid division by zero
-           )))
-
-(defmethod! sox-energy ((freqs list) (amps list))
-           (/
-            (loop for x in amps
-                  finally
-                  sum (* x x)
-                  )
-            (+ (om-sum amps) 0.00000001) ;avoid division by zero
-           ))
-
-(defmethod! sox-spectral-descriptor ((descriptor string) (freqs list) (amps list))
-           ; :menuins '(())
-            (cond ((equal descriptor "SpectralCentroid") (sox-centroid freqs amps))
-                  ((equal descriptor "SpectralSpread") (sox-spectral-spread freqs amps (sox-centroid freqs amps)))
-                  ((equal descriptor "SpectralDecrease") (sox-spectral-decrease freqs amps))
-                  ))
-
-; this function can also be useful for the constraint-building function (menu for the choice of the descriptor)
-(defun sox-descriptor-to-type (descriptor)
-  (cond ((equal descriptor "SpectralCentroid") "1SCN")
-        ((equal descriptor "SpectralSpread") "1SSP")
-        ((equal descriptor "SpectralDecrease") "1SPD")
-        )
-  )
-; should be simply a menu with the 'long word' that gets converted into the 4ascii-characters
-
-
-(defvar *sox-descriptors* '("SpectralCentroid" "SpectralSpread" "SpectralDecrease"))
 

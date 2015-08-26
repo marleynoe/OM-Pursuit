@@ -34,8 +34,6 @@
                                             :ties ties
                                             )))
               thevoice))
-
-
               
 
 (defmethod objfromobjs ((self chord-seq) (type voice))
@@ -47,35 +45,8 @@
     themultiseq))
          
 
-; %%%%%%% GABOR %%%%%%%%%%
-
-(defmethod objfromobjs ((self gabor-array) (type score-array))
-  (let* ((gabordata (data self))
-         (new (make-instance 'score-array
-                             :numcols (length (first gabordata))
-                             :midicent (f->mc (fifth gabordata))
-                             :onset (om-round (om* 1000 (first gabordata)))
-                             :duration (om-round (om* 1000 (second gabordata)))
-                             :velocity (om-scale (gabor-amplitude (fourth gabordata) (third gabordata)) 1 127) ;this doesn't consider bandwidth... (lin->db 
-                             :chord (nth 7 gabordata))))
-    new))
-
-
-; %%%%%%%%%% FOF %%%%%%%%%%%%
-
-(defmethod objfromobjs ((self fof-array) (type score-array))
-  (let* ((fofdata (data self))
-         (new (make-instance 'score-array
-                             :numcols (length (first fofdata))
-                             :midicent (f->mc (fifth fofdata))
-                             :onset (om-round (om* 1000 (first fofdata)))
-                             :duration (om-round (om* 1000 (second fofdata)))
-                             :velocity (om-scale (lin->db (fof-amplitude (fourth fofdata) (third fofdata))) 1 127) ;this doesn't consider bandwidth nor skirtwidth...
-                             :chord (nth 10 fofdata))))
-    new))
-
 ; %%%%%%%%%%%% PARTIALS %%%%%%%%%%%%%%
-
+#|
 (defmethod objfromobjs ((self partial-array) (type score-array))
   (let* ((partialdata (data self))
          (new (make-instance 'score-array
@@ -86,6 +57,7 @@
                              :velocity (om-scale (lin->db (third partialdata)) 1 127) ;this doesn't consider bandwidth nor skirtwidth...
                              :chord (nth 10 partialdata))))
     new))
+|#
 
 ; %%%%%%%%%%%%% SOUNDGRAIN LABELLED %%%%%%%%%%%%%%%
 
@@ -139,9 +111,6 @@
 
 (defmethod objfromobjs ((self voice) (type score-array))
   (Objfromobjs (Objfromobjs self (mki 'chord-seq)) (mki 'score-array)))
-
-(defmethod! micro->multi ((score voice) (approx integer) &key port-list channel-list)
-            (micro->multi (ObjfromObjs score (mki 'chord-seq)) approx :port-list port-list :channel-list channel-list))
 
 
 ; %%%%%%%%%%%%% DIRECTLY FROM PARTIALS %%%%%%%%%%%%%%%%%%%

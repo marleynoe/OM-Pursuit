@@ -1,4 +1,11 @@
-;AtomicOrchestrator, 2010 McGill University
+;************************************************************************
+; OM-Pursuit, library for dictionary-based sound modelling in OpenMusic *
+;      (c) 2011-2013 Marlon Schumacher (CIRMMT/McGill University)       *     
+;               https://github.com/marleynoe/OM-Pursuit                 *
+;                                                                       *
+;                DSP based on pydbm - (c) Graham Boyes                  *
+;                  https://github.com/gboyes/pydbm                      *
+;************************************************************************
 ;
 ;This program is free software; you can redistribute it and/or
 ;modify it under the terms of the GNU General Public License
@@ -16,7 +23,7 @@
 ;along with this program; if not, write to the Free Software
 ;Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307,10 USA.
 ;
-;Authors: M. Schumacher
+;Authors: M. Schumacher, G.Boyes
 
 (in-package :om)
 
@@ -26,6 +33,8 @@
 
 (defmethod! build-array ((components list))
             :icon '(264)
+            :indoc '("a list of array components")
+            :doc "takes a list of components and builds an array"
             (let* ((newarray (make-instance (type-of (comp-array (first components)))
                                             :numcols 0
                                             ))) ;(or actiontime 0)
@@ -68,6 +77,21 @@
               (set-array (type-of self) (numcols self) finaldata)
               ))
 
+
+; like modify-slot?
+
+(defmethod! set-array-slot ((array class-array) (slotname string) (slotvals t))
+            :icon '(264)
+            (let ((newarray array))
+           ; (setf ((label2index newarray slotname) newarray) slotvals)
+            ;  (label2index newarray slotname)
+              ;(setf (#'slotname newarray) slotvals)
+             (setf #'(lambda (theslotname)
+                      (theslotname newarray) slotname) slotvals)
+            (set-data newarray)
+            newarray         
+            ))
+
 #|
 (defmethod! set-array-slot ((self class-array) (slotname t) (slotvals t))
             :icon '(264)
@@ -87,26 +111,19 @@
               ))
 |#
 
-(defmethod! set-array-slot ((array class-array) (slotname string) (slotvals t))
-            :icon '(264)
-            (let ((newarray array))
-           ; (setf ((label2index newarray slotname) newarray) slotvals)
-            ;  (label2index newarray slotname)
-              ;(setf (#'slotname newarray) slotvals)
-              (setf #'(lambda (theslotname)
-                      (theslotname newarray) slotname) slotvals)
-            (set-data newarray)
-            newarray         
-            ))
-
-
-
 (defun set-array (type numcols params)
 (let ((array (cons-array (make-instance type) (list nil numcols 0 nil) params)))
  (set-data array)
  array)
 )
 
+
+(defun give-array (theparameters)
+  (print theparameters)
+  (set-array 'add-1 (length (car theparameters)) (list :e-dels (car theparameters) 
+                                                       :amp (second theparameters)
+                                                       :durs (third theparameters))
+             ))
 
 (defmethod! process-array ((process t) (array class-array))
             :icon '(264)
@@ -143,7 +160,7 @@
 (defmethod! process-array-slot ((process t) (slotname string) (array class-array))
             :icon '(264)
             (let* ((thearray (clone array))
-                  ;(theslotvalues (symbol-function slotname)) ;later I should use symbol-function... but no time for now
+                  ;(theslotvalues (symbol-function slotname)) ;later I should use symbol-function... 
                   (theslotvalues (array-field array slotname))
                   (thenewvalues (funcall process theslotvalues)))
             (array-field thearray slotname thenewvalues)
@@ -249,6 +266,7 @@
               (array-field self slotname (third (multiple-value-list (om-sample (second (mat-trans (reduce-points curve (* 0.01 (- 100 points))))) numcomps))))
               ))
 
+#|
 (defmethod! field-lowpass ((self class-array) (slotname string) (filtertype string) (windowsize number) (recursion-depth number))
             :icon 04
             :initvals '(nilarray-data nil "lowpass" 3 1)
@@ -298,6 +316,7 @@
                                        (om- thedata (filtres::mean-filter-rec thedata windowsize-l recursion-depth-l)))))
                     ))
               )
+|#
 
 (defmethod! field-scale ((self class-array) (slotname string) &key minval maxval exp)
             :icon 04
@@ -369,7 +388,8 @@
             (convert-paths thedata discard-levels new-dir keep-levels)
             )
 
-
+; these guys require the om-fil lib
+#|
 (defmethod! slot-lowpass ((thedata list) (filtertype string) (windowsize number) (recursion-depth number))
             :icon 04
             :initvals '(nil "lowpass" 3 1)
@@ -408,7 +428,7 @@
                    (om- (om- thedata (filtres::mean-filter-rec thedata windowsize-h recursion-depth-h)) 
                         (om- thedata (filtres::mean-filter-rec thedata windowsize-l recursion-depth-l))))
                   ))
-     
+|#
                                 
 
 (defmethod! slot-scale ((thedata list) &key minval maxval exp)
@@ -493,7 +513,6 @@
             :outdoc '("array" "list of components")
             (values (first self) (second self))
             )
-
 
 #|
 ;with three args

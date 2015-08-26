@@ -1,0 +1,4 @@
+#!/bin/bash
+rm *.c
+rm -fr build
+python setup.py install

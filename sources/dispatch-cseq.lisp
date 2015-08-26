@@ -25,8 +25,10 @@
 (defun micro-channel (midic approx)
   (+ 1 (/ (mod midic 100) (/ 200 approx))))
 
+#|
+; throws an error for some reason
 
-(defmethod* PrepareToPlay ((player t) (self note) at &key  approx port interval voice)
+(defmethod* PrepareToPlay ((player t) (self note) at &key approx port interval voice)
    (when (and *midiplayer* (not (memq (tie self) '(continue end))))
      (setf port (or port (port self)))
      (let ((chan (+ (1- (chan self))  (1- (micro-channel (approx-m  (midic self) approx) approx))))
@@ -43,6 +45,7 @@
                           (first interval))
                        voice)))
          (playnote port chan pitch vel dur date voice)))))
+|#
 
 (defmethod! micro->multi ((score chord-seq) (approx integer) &key port-list channel-list)
             :icon '(141)

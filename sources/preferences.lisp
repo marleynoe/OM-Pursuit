@@ -1,7 +1,11 @@
-; OMsox, 06/2010 M.Schumacher (CIRMMT/McGill University) 
-; library for audio conversions and (batch) processing based on
-; SoX - SoundeXchange - the Swiss Army knife of audio manipulation
-; http://sox.sourceforge.net/
+;************************************************************************
+; OM-Pursuit, library for dictionary-based sound modelling in OpenMusic *
+;      (c) 2011-2013 Marlon Schumacher (CIRMMT/McGill University)       *     
+;               https://github.com/marleynoe/OM-Pursuit                 *
+;                                                                       *
+;                DSP based on pydbm - (c) Graham Boyes                  *
+;                  https://github.com/gboyes/pydbm                      *
+;************************************************************************
 ;
 ;This program is free software; you can redistribute it and/or
 ;modify it under the terms of the GNU General Public License
@@ -19,108 +23,47 @@
 ;along with this program; if not, write to the Free Software
 ;Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307,10 USA.
 ;
-;Authors: M. Schumacher
+;Authors: M. Schumacher, G.Boyes
 
 (in-package :om)
 
-; gone for now -----
 
-#|
+; %%%%%%%%%%%%% Soundgrain-decomp %%%%%%%%%%%%%%%%%
 
-; %%%%%%%%%%%%% GABOR DECOMP %%%%%%%%%%%%%%%%%
+(defvar *om-pursuit-path* "path to om-pursuit-executable")
 
-(defvar *GABOR-PATH* "path to gaborDecomp")
+(add-external-pref-module 'om-pursuit)
 
-(add-external-pref-module 'gabor)
+(defmethod get-external-name ((module (eql 'om-pursuit))) "OM-Pursuit")
+(defmethod get-external-icon ((module (eql 'om-pursuit))) (and (exist-lib-p "OM-Pursuit") (list 01 (exist-lib-p "OM-Pursuit"))))
 
-(defmethod get-external-name ((module (eql 'gabor))) "Gabor")
-(defmethod get-external-icon ((module (eql 'gabor))) (and (exist-lib-p "OM-Pursuit") (list 01 (exist-lib-p "OM-Pursuit"))))
+(defmethod get-external-module-path ((module (eql 'om-pursuit)) modulepref) (get-pref modulepref :om-pursuit-path))
+(defmethod set-external-module-path ((module (eql 'om-pursuit)) modulepref path) 
+  (set-pref modulepref :om-pursuit-path path))
 
-(defmethod get-external-module-path ((module (eql 'gabor)) modulepref) (get-pref modulepref :gabor-path))
-(defmethod set-external-module-path ((module (eql 'gabor)) modulepref path) 
-  (set-pref modulepref :gabor-path path))
+(defmethod get-external-def-vals ((module (eql 'om-pursuit))) 
+  (list :om-pursuit-path (print (om-make-pathname :directory (append (pathname-directory (lib-pathname (exist-lib-p "OM-Pursuit"))) '("executable")
+                                            '("OM-Pursuit.app") '("Contents") '("MacOS")) :name "OM-Pursuit")
+        )))
 
-(defmethod get-external-def-vals ((module (eql 'gabor))) 
-  (list :gabor-path (om-make-pathname :directory (append (pathname-directory (lib-pathname (exist-lib-p "OM-Pursuit"))) '("gabor")) :name "gabor")
-        ))
-
-(defmethod save-external-prefs ((module (eql 'gabor))) 
-  `(:gabor-path ,(om-save-pathname *GABOR-PATH*)))
+;(om-make-pathname :directory (append (pathname-directory (lib-pathname (exist-lib-p "OM-Pursuit"))) '("executable")) :name "OM-Pursuit-exec")
 
 
-(defmethod put-external-preferences ((module (eql 'gabor)) moduleprefs)
-  (when (get-pref moduleprefs :gabor-path)
-    (setf *GABOR-PATH* (find-true-external (get-pref moduleprefs :gabor-path)))
-    (when (probe-file *GABOR-PATH*)
-      (om-cmd-line (format nil "chmod 777 ~s" (namestring *gabor-path*)) t))))
+(defmethod save-external-prefs ((module (eql 'om-pursuit))) 
+  `(:om-pursuit-path ,(om-save-pathname *om-pursuit-path*)))
 
-(put-external-pref-values 'gabor)
+(defmethod put-external-preferences ((module (eql 'om-pursuit)) moduleprefs)
+  (when (get-pref moduleprefs :om-pursuit-path)
+    (setf *om-pursuit-path* (find-true-external (get-pref moduleprefs :om-pursuit-path)))
+    (when (probe-file *om-pursuit-path*)
+      (om-cmd-line (format nil "chmod -R 777 ~s" (namestring *om-pursuit-path*)) t))))
 
-; %%%%%%%%%%%%% FOF DECOMP %%%%%%%%%%%%%%%%%
+(put-external-pref-values 'om-pursuit)
 
-(defvar *FOF-PATH* "path to FOFDecomp")
-
-(add-external-pref-module 'fof)
-
-(defmethod get-external-name ((module (eql 'fof))) "Fof")
-(defmethod get-external-icon ((module (eql 'fof))) (and (exist-lib-p "OM-Pursuit") (list 01 (exist-lib-p "OM-Pursuit"))))
-
-(defmethod get-external-module-path ((module (eql 'fof)) modulepref) (get-pref modulepref :fof-path))
-(defmethod set-external-module-path ((module (eql 'fof)) modulepref path) 
-  (set-pref modulepref :fof-path path))
-
-(defmethod get-external-def-vals ((module (eql 'fof))) 
-  (list :fof-path (om-make-pathname :directory (append (pathname-directory (lib-pathname (exist-lib-p "OM-Pursuit"))) '("fof")) :name "fof")
-        ))
-
-(defmethod save-external-prefs ((module (eql 'fof))) 
-  `(:fof-path ,(om-save-pathname *FOF-PATH*)))
-
-
-(defmethod put-external-preferences ((module (eql 'fof)) moduleprefs)
-  (when (get-pref moduleprefs :fof-path)
-    (setf *FOF-PATH* (find-true-external (get-pref moduleprefs :fof-path)))
-    (when (probe-file *FOF-PATH*)
-      (om-cmd-line (format nil "chmod 777 ~s" (namestring *fof-path*)) t))))
-
-(put-external-pref-values 'fof)
-
-; %%%%%%%%%%%%% SGL DECOMP %%%%%%%%%%%%%%%%%
-
-(defvar *SGL-PATH* "path to SGLDecomp")
-
-(add-external-pref-module 'sgl)
-
-(defmethod get-external-name ((module (eql 'sgl))) "Sgl")
-(defmethod get-external-icon ((module (eql 'sgl))) (and (exist-lib-p "OM-Pursuit") (list 01 (exist-lib-p "OM-Pursuit"))))
-
-(defmethod get-external-module-path ((module (eql 'sgl)) modulepref) (get-pref modulepref :sgl-path))
-(defmethod set-external-module-path ((module (eql 'sgl)) modulepref path) 
-  (set-pref modulepref :sgl-path path))
-
-(defmethod get-external-def-vals ((module (eql 'sgl))) 
-  (list :sgl-path (om-make-pathname :directory (append (pathname-directory (lib-pathname (exist-lib-p "OM-Pursuit"))) '("sgl")) :name "sgl")
-        ))
-
-(defmethod save-external-prefs ((module (eql 'sgl))) 
-  `(:sgl-path ,(om-save-pathname *SGL-PATH*)))
-
-
-(defmethod put-external-preferences ((module (eql 'sgl)) moduleprefs)
-  (when (get-pref moduleprefs :sgl-path)
-    (setf *SGL-PATH* (find-true-external (get-pref moduleprefs :sgl-path)))
-    (when (probe-file *SGL-PATH*)
-      (om-cmd-line (format nil "chmod 777 ~s" (namestring *sgl-path*)) t))))
-
-
-(put-external-pref-values 'sgl)
-
-|#
-
-; %%%%%%%%%%%%% SGN DECOMP %%%%%%%%%%%%%%%%%
+; %%%%%%%%%%%%% Soundgrain-decomp %%%%%%%%%%%%%%%%%
 
 (defvar *SGN-PATH* "path to SGNDecomp")
-
+#|
 (add-external-pref-module 'sgn)
 
 (defmethod get-external-name ((module (eql 'sgn))) "Sgn")
@@ -236,3 +179,5 @@
       (om-cmd-line (format nil "chmod 777 ~s" (namestring *mdc-path*)) t))))
 
 (put-external-pref-values 'mdc)
+
+|#

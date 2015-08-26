@@ -21,23 +21,43 @@
 (in-package :om)
 
 (defvar *pursuit-constraint-sdif-types* 
-  (x-append (make-instance 'sdiftype
-                           :struct 'f
-                           :signature "XPCT"
-                           :description '(("XPCT" "Pursuit-Constraint"))
-                           )
-            (make-instance 'sdiftype
-                           :struct 'm
-                           :signature "XPCT"
-                           :description '("Pursuit-Constraint")
-                           )
-            ))
+  (x-append 
+   (make-instance 'sdiftype
+                  :struct 'f
+                  :signature "XPCT"
+                  :description '(("XPCT" "Pursuit-Constraint") ("XMSA" "Max-simultaneous-atoms") ("XMSC" "Max-simultaneous-corpus-atoms") ("XMNT" "Min-time-distance") ("XMXT" "Max-time-distance")) 
+                  )
+   (make-instance 'sdiftype
+                  :struct 'm
+                  :signature "XPCT"
+                  :description '("Pursuit-Constraint")
+                  )
+   (make-instance 'sdiftype
+                  :struct 'm
+                  :signature "XMSA"
+                  :description '("Max-simultaneous-atoms")
+                  )
+   (make-instance 'sdiftype
+                  :struct 'm
+                  :signature "XMSC"
+                  :description '("Max-simultaneous-corpus-atoms")
+                  )
+   (make-instance 'sdiftype
+                  :struct 'm
+                  :signature "XMNT"
+                  :description '("Min-time-distance")
+                  )
+   (make-instance 'sdiftype
+                  :struct 'm
+                  :signature "XMXT"
+                  :description '("Max-time-distance")
+                  )
+   ))
 
 (defvar *om-pursuit_default-nvt* (make-instance 'sdifnvt
-                                                :nv-pairs '(("This file was produced by" "OM-Pursuit") ("Author" "M.Schumacher,G.Boyes"))
+                                                :nv-pairs '(("This file was produced by" "OM-Pursuit") ("Authors" "Marlon Schumacher, Graham Boyes"))
                                                 :tablename "OM-Pursuit Info"
                                                 :id 0 ))
-
 
 ; class for defining a constraint in OM-Pursuit
 ; how can I make menuins for slots of the classes?
@@ -53,303 +73,3 @@
            (:icon 02)
            )
 
-(defmethod! sgn-constraint-p ((self t)) nil)
-(defmethod! sgn-constraint-p ((self sgn-constraint)) t)
-
-;function that will return an instance of class 'sgn-constraint
-(defmethod! ctr-define ((constraint symbol) (descriptor string) (order integer) (value t))
-            :icon 02 
-            :initvals '(nil "0" 0 nil)
-            :menuins '( (0 ( ("<" '<) ("<=" '<=) (">" '>) (">=" '>=)  ("==" '==) ("!=" '!=)  ("W" 'W) ("B" 'B) ))
-                        (1 ( ("SpectralCentroid" "1SCN") ("SpectralKurtosis" "1SLK") ("SpectralRolloff" "1SLR") ("SpectralDecrease" "1SPD") )))
-            :indoc '("constraint as a symbol" "which descriptor to apply the constraint to" "an integer specifying the order" "the value for the constraint (static = number, dynamic = bpf)")
-            :doc "Defines and returns an instance of sgn-constraint"
-            (make-instance 'sgn-constraint
-                           :constraint constraint
-                           :descriptor descriptor
-                           :order order
-                           :value value)
-            )
-
-(defmethod! ctr-define ((constraint integer) (descriptor string) (order integer) (value t))
-            (make-instance 'sgn-constraint
-                           :constraint constraint
-                           :descriptor descriptor
-                           :order order
-                           :value value)
-            )
-
-; this function allows combining different sub-constraints (constraint-blocks) into larger scale tree-structures
-(defmethod! ctr-combine ((operator symbol) (constraint1 t) (constraint2 t))
-            :initvals '(nil nil nil)
-            :menuins '( (0 (("AND" 'AND) ( "NAND" 'NAND ) ( "OR" 'OR ) ( "NOR" 'NOR ) ( "XOR" 'XOR ) ( "XNOR" 'XNOR ))))
-                            ;( "W" 'W ) ( "B" 'B ))))
-
-            ;need a check here: 
-            ;(print (constraint constraint1))
-            ;(print (constraint constraint2)) ; need to be able to check for nested constraints, possibly with a cond statement
-            ;(if ((or (consp (constraint constraint1)) (consp (constraint constraint1)
-            #|
-            (cond  ((or (equal (constraint constraint1) 'w) (equal (constraint constraint2) 'w)) (list constraint1 'w constraint2))
-                   ((or (equal (constraint constraint1) 'b) (equal (constraint constraint2) 'b)) (list constraint1 'b constraint2))
-                   (t (list constraint1 operator constraint2)))
-            |#
-            
-            (list operator (list constraint1 "," constraint2))
-           ; (format nil "(~a (~a,~a))" operator constraint1 constraint2)
-            )
-
-
-(defmethod! ctr-weight ((constraint t) (sgn-constraint t))
-            ;:menuins '( (0 (( "W" 'W ) ( "B" 'B ))))
-            ;(print (list operator constraint sgn-constraint))
-            (if (or (equal (constraint sgn-constraint) 'w) (equal (constraint sgn-constraint) 'b))
-                (list (constraint sgn-constraint) (list constraint "," sgn-constraint))
-              ;  (format nil "(~a (~a,~a))" operator constraint sgn-constraint)
-              (print "constraint is not a weighting"))
-              )
-            
-; this function takes a list of sgn-constraints and operators and writes an SDIF files
-(defmethod! ctr-compile ((constraint-list t))
-            :icon 02
-            ;(print constraint-list)
-            (let* ((object-list (print (flat (list-filter 'sgn-constraint-p (list! constraint-list) 'pass))))
-                   (side-effect (loop for item in object-list 
-                                      for i from 1 to (length object-list) do
-                                      (setf (streamid item) i)
-                                      )) 
-                   (full-constraint (replace-ctr-with-str constraint-list))
-                   (frame-list
-                    (loop for item in object-list 
-                          for i from 1 to (length object-list) collect
-                                
-                          (list
-                           ;write StreamID table
-                           (make-instance 'sdifsid
-                                          :id i
-                                          :source (string+ "constraint-" (number-to-string i))
-                                          :treeway (format nil "~a ~a ~d ~d" (constraint item) (descriptor item) (order item) (streamid item)) ;reduce? ;(makestring (replace-ctr-with-str item))
-                                          )
-                           
-                           ; write SDIF frames
-                           (if (bpf-p (value item))
-                               (loop for pair in (point-pairs (value item)) collect
-                                     (make-instance 'sdifframe
-                                                    :signature "XPCT"
-                                                    :ftime (car pair)
-                                                    :StreamId i
-                                                    :LMatrix (make-instance 'raw-sdifmatrix
-                                                                            :signature (print "XPCT")
-                                                                            :data (list (second pair))
-                                                                            )
-                                                    )
-                                     )
-                             (make-instance 'sdifframe
-                                            :signature "XPCT"
-                                            :ftime 0
-                                            :StreamId (print i)
-                                            :LMatrix  (make-instance 'raw-sdifmatrix
-                                                                            :signature (print "XPCT")
-                                                                            :data (list (value item))
-                                                                            )
-                                            )
-                             ))
-                          ))
-                   
-                   ; write nvt
-                   (nvt (make-instance 'sdifnvt
-                                       :nv-pairs (print (list (list "Fullconstraint" ;(format nil "(~a (~a ~a)" (first full-constraint) (second full-constraint) (third full-constraint)))))
-                                                                    (replace-string (itemtostring full-constraint) " , "))))
-                                       :tablename "Constraint"
-                                       :id 0))
-                   (transframes (mat-trans frame-list)))
-              
-              ; output
-              ;(list (x-append nvt (car transframes)) (flat (cdr transframes)))
-              
-              (make-instance 'sdif-buffer
-                             :types *pursuit-constraint-sdif-types*
-                             :nvts (x-append *om-pursuit_default-nvt* nvt (car transframes))
-                             :lframes (flat (cdr transframes))
-                             )   
-              ;(format nil "(~a (~a,~a)" (first full-constraint) (second full-constraint) (third full-constraint)))
-            ))
-
-
-#|
-; why can't I set the signature of an sdifmatrix?
-(signature (make-instance 'sdifmatrix
-                          :numcols 2
-                          :signature (print "XPCT")
-                                                                         ;:par1 (value item)
-                          ))
-|#
-
-; this function takes a constraint-tree and replaces the objects with values of the slots
-
-(defmethod! replace-ctr-with-str ((self sgn-constraint))
-            ;(format nil "( ~a ~a ~d ~d )" (constraint self) (descriptor self) (order self) (streamid self))
-            (list (constraint self) (descriptor self) (order self) (streamid self))
-            )
-
-;what's this for?
-(defmethod! replace-ctr-with-str ((self t))
-            self
-            )
-
-(defmethod! replace-ctr-with-str ((self list))
-            (mapcar #'(lambda (x) (replace-ctr-with-str x)) self)
-            )
-
-;; CHECK THESE FUNCTIONS FOR MORE EFFICIENT SDIF WRITING
-
-
-;;;================================================================================================================
-;;; BPF TO SDIF
-;;;================================================================================================================
-
-#|
-(defmethod! bpf->sdif ((self bpf) ftype mtype &optional (scope 'time) (typedefs nil) (outfile "mybpf.sdif"))
-  :icon 608
-  :initvals '(nil "1FQ0" "1FQ0" 'time nil nil "mybpf.sdif")
-  :indoc '("a BPF" "frame type (string)" "matrix type (string)" "x = time or elements" "custom types declaration" "output file")
-  :menuins '((3 (("Time" 'time) ("Elements" 'elts))))
-  :doc "Saves the contents of <self> (a BPF) as an SDIF file in <outfile>.
-
-<ftype> and <mtype> allow to determine the SDIF type to enclose the data in (default = 1FQ0, i.e. fundamental frequency).
-If these types are not standard, they must be declared and given as a list of SDIFType objects in <typedefs>
-
-If <outfile> is just a filename (not a pathname) the file is written in the default OM 'out-files' folder.
-
-<scope> allows to choose whether the x-dimension of the BPF should be considered as time (default) or as the elements in a single matrix.
-"
-  (let* ((error nil) time
-         (out-path (cond ((stringp outfile) (outfile outfile))
-                         ((pathnamep outfile) outfile)
-                         (t (om-CHOOSE-new-FILE-DIALOG))))
-         (file (sdif-open-file (om-path2cmdpath out-path) 1))
-         (datatype 4))
-    (sdif::SdifFWriteGeneralHeader file)
-    (write-nvt-tables file (list (default-om-NVT)))
-    (when typedefs (write-types-table file (list! typedefs)))
-    (sdif::SdifFWriteAllASCIIChunks file)
-    (if (equal scope 'time)
-        (let* ((framesize (+ 32 (calc-pad datatype)))
-               (valptr (om-make-pointer datatype)))
-          (loop for time in (x-points self)
-                for val in (y-points self)
-                while (not error) do
-                (sdif::SdifFSetCurrFrameHeader file (sdif::SdifStringToSignature ftype) framesize 1 0 (coerce time 'double-float))
-                (sdif::SdifFWriteFrameHeader file)
-                (om-write-ptr valptr 0 :float (coerce val 'single-float))
-                (sdif::SdifFWriteMatrix file (sdif::SdifStringToSignature mtype) datatype 1 1 valptr)
-                )
-          (om-free-pointer valptr))
-      (let* ((framesize (+ 32 (calc-pad (* datatype (length (point-list self))))))
-             (valptr (om-make-pointer (* datatype (length (point-list self))))))
-        (sdif::SdifFSetCurrFrameHeader file (sdif::SdifStringToSignature ftype) framesize 1 0 (coerce 0.0 'double-float))
-        (sdif::SdifFWriteFrameHeader file)
-        (loop for elt in (x-points self)
-              for val in (y-points self)
-              for i = 0 then (+ i 1)
-              while (not error) do
-              (om-write-ptr valptr (* i datatype) :float (coerce val 'single-float)))
-        (sdif::SdifFWriteMatrix file (sdif::SdifStringToSignature mtype) datatype (length (point-list self)) 1 valptr)
-        (om-free-pointer valptr))
-      )
-    (sdif-close-file file)
-    (om-namestring out-path)
-    ))
-
-
-;;;================================================================================================================
-;;; MARKERS TO SDIF
-;;;================================================================================================================
-
-(defmethod! markers->sdif ((self list) &optional (ftype "1MRK") (typedefs nil) (outfile "markers.sdif"))
-  :icon 608
-  :initvals '(nil "1MRK" nil "mybpf.sdif")
-  :indoc '("onset list (s)" "SDIF frame type" "custom types declaration" "output file")
-  :doc "Saves <self> (a list of onsets) as an SDIF file in <outfile>.
-
-<ftype> allows to determine the SDIF frame type to use (default = 1MRK, the standard SDIF type for time markers).
-If this type is not standard, it must be declared and given as an SDIFType object in <typedefs>
-
-If <outfile> is just a filename (not a pathname) the file is written in the default OM 'out-files' folder.
-
-"
-  (let* ((error nil) time
-         (out-path (cond ((stringp outfile) (outfile outfile))
-                         ((pathnamep outfile) outfile)
-                         (t (om-CHOOSE-new-FILE-DIALOG))))
-         (file (sdif-open-file (om-path2cmdpath out-path) 1))
-         (datatype 4))
-    (sdif::SdifFWriteGeneralHeader file)
-    (write-nvt-tables file (list (default-om-NVT)))
-    (when typedefs (write-types-table file (list! typedefs)))
-    (sdif::SdifFWriteAllASCIIChunks file)
-    (let* ((framesize (+ 32 (calc-pad datatype))))
-      (loop for time in self
-            while (not error) do
-            (sdif::SdifFSetCurrFrameHeader file (sdif::SdifStringToSignature ftype) framesize 0 0 (coerce time 'double-float))
-            (sdif::SdifFWriteFrameHeader file)))
-    (sdif-close-file file)
-    (om-namestring out-path)
-    ))
-
-;;;================================================================================================================
-;;; BPF TO SDIF
-;;;================================================================================================================
-
-(defmethod! bpf->sdif ((self bpf) ftype mtype &optional (scope 'time) (typedefs nil) (outfile "mybpf.sdif"))
-  :icon 608
-  :initvals '(nil "1FQ0" "1FQ0" 'time nil nil "mybpf.sdif")
-  :indoc '("a BPF" "frame type (string)" "matrix type (string)" "x = time or elements" "custom types declaration" "output file")
-  :menuins '((3 (("Time" 'time) ("Elements" 'elts))))
-  :doc "Saves the contents of <self> (a BPF) as an SDIF file in <outfile>.
-
-<ftype> and <mtype> allow to determine the SDIF type to enclose the data in (default = 1FQ0, i.e. fundamental frequency).
-If these types are not standard, they must be declared and given as a list of SDIFType objects in <typedefs>
-
-If <outfile> is just a filename (not a pathname) the file is written in the default OM 'out-files' folder.
-
-<scope> allows to choose whether the x-dimension of the BPF should be considered as time (default) or as the elements in a single matrix.
-"
-  (let* ((error nil) time
-         (out-path (cond ((stringp outfile) (outfile outfile))
-                         ((pathnamep outfile) outfile)
-                         (t (om-CHOOSE-new-FILE-DIALOG))))
-         (file (sdif-open-file (om-path2cmdpath out-path) 1))
-         (datatype 4))
-    (sdif::SdifFWriteGeneralHeader file)
-    (write-nvt-tables file (list (default-om-NVT)))
-    (when typedefs (write-types-table file (list! typedefs)))
-    (sdif::SdifFWriteAllASCIIChunks file)
-    (if (equal scope 'time)
-        (let* ((framesize (+ 32 (calc-pad datatype)))
-               (valptr (om-make-pointer datatype)))
-          (loop for time in (x-points self)
-                for val in (y-points self)
-                while (not error) do
-                (sdif::SdifFSetCurrFrameHeader file (sdif::SdifStringToSignature ftype) framesize 1 0 (coerce time 'double-float))
-                (sdif::SdifFWriteFrameHeader file)
-                (om-write-ptr valptr 0 :float (coerce val 'single-float))
-                (sdif::SdifFWriteMatrix file (sdif::SdifStringToSignature mtype) datatype 1 1 valptr)
-                )
-          (om-free-pointer valptr))
-      (let* ((framesize (+ 32 (calc-pad (* datatype (length (point-list self))))))
-             (valptr (om-make-pointer (* datatype (length (point-list self))))))
-        (sdif::SdifFSetCurrFrameHeader file (sdif::SdifStringToSignature ftype) framesize 1 0 (coerce 0.0 'double-float))
-        (sdif::SdifFWriteFrameHeader file)
-        (loop for elt in (x-points self)
-              for val in (y-points self)
-              for i = 0 then (+ i 1)
-              while (not error) do
-              (om-write-ptr valptr (* i datatype) :float (coerce val 'single-float)))
-        (sdif::SdifFWriteMatrix file (sdif::SdifStringToSignature mtype) datatype (length (point-list self)) 1 valptr)
-        (om-free-pointer valptr))
-      )
-    (sdif-close-file file)
-    (om-namestring out-path)
-    ))
-|#

@@ -1,8 +1,34 @@
+;************************************************************************
+; OM-Pursuit, library for dictionary-based sound modelling in OpenMusic *
+;      (c) 2011-2013 Marlon Schumacher (CIRMMT/McGill University)       *     
+;               https://github.com/marleynoe/OM-Pursuit                 *
+;                                                                       *
+;                DSP based on pydbm - (c) Graham Boyes                  *
+;                  https://github.com/gboyes/pydbm                      *
+;************************************************************************
+;
+;This program is free software; you can redistribute it and/or
+;modify it under the terms of the GNU General Public License
+;as published by the Free Software Foundation; either version 2
+;of the License, or (at your option) any later version.
+;
+;See file LICENSE for further informations on licensing terms.
+;
+;This program is distributed in the hope that it will be useful,
+;but WITHOUT ANY WARRANTY; without even the implied warranty of
+;MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;GNU General Public License for more details.
+;
+;You should have received a copy of the GNU General Public License
+;along with this program; if not, write to the Free Software
+;Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307,10 USA.
+;
+;Authors: M. Schumacher, G.Boyes
+
 (in-package :om)
 
 
-
-(defun get-specific-streams (sdiffile) ;(sdiffile list-of-streamIDs) -> for now static
+(defmethod! get-specific-streams (sdiffile) &key ;(sdiffile list-of-streamIDs) -> for now static
   (let ((thestreams (sdifstreams sdiffile)))
     (table-filter #'(lambda (mystream) 
                       (if  (or (equal mystream 1) (equal mystream 2)) t nil))
@@ -10,7 +36,46 @@
                   0
                   'pass)
     ))
-            
+         
+
+(defun next-frame-is-ok (ptr)
+ (good-signature-p (sdif::SdifSignatureToString (sdif::SdifFCurrSignature ptr))))
+
+#|
+(defun get-sdif-file-data (sdiffile mat-types)
+ (let* ((path (filepathname sdiffile))
+        (fileptr (sdif-open-file path :eReadFile))
+       (data nil))
+   (when (and fileptr (not (sdif-null-ptr-p fileptr)))
+     (sdif::SdifFReadGeneralHeader fileptr)
+     (sdif::SdifFReadAllASCIIChunks fileptr)
+     (loop while (next-frame-is-ok fileptr) do
+           (multiple-value-bind (sig time id pos nbmat)
+               (read-frame-header fileptr)
+             (if (string-equal sig "1WMN")
+               (push 
+                ;(list time
+                      (remove nil
+                              (loop for matnum from 0 to (1- nbmat) collect
+                                    (multiple-value-bind (sig nrows ncols size pos)
+                                        (read-matrix-header fileptr) 
+                                      (if (find sig mat-types :test 'string-equal)
+                                   (prog1
+                                       (loop for k from 0 to (1- nrows)
+                                             do (sdif::SdifFReadOneRow fileptr) ; can be optimized by loading the full matrix
+                                             collect (loop for n from 1 to ncols collect
+                                                           (sdif::SdifFCurrOneRowCol fileptr n)))
+                                     (sdif::SdifFReadPadding fileptr (sdif-calculate-padding nrows ncols size)))
+                                        (progn (sdif::SdifFSkipMatrixData fileptr) nil))
+                                      )))
+                      ;)
+                      data)
+               (sdif::SdifFSkipFrameData fileptr))
+           (sdif-get-signature fileptr)))
+     (sdif-close-file fileptr))
+   (reverse (remove nil data)))) ;maybe remove nil here and/or time
+|#   
+
 (defvar *ircamdescriptors-sdif-matrix-types*
 '((itin {temporalincreaseinfo}) (1eev {energyenvelope}) (1hcn {harmonicspectralcentroid}) (1hen {harmonicenergy}) (isom {weightedstddeviationmedianfilterinfo}) (1hoe {harmonicoddtoevenratio}) (1mfc {mfcc}) (1ldn {loudness}) (iwmn {weightedmeaninfo}) (1inh {inharmonicity}) (iwsd {weightedstddeviationinfo}) (1hsd {harmonicspectraldeviation}) (1hku {harmonicspectralkurtosis}) (1hva {harmonicspectralvariation}) (1pde {perceptualspectraldecrease}) (1nen {noiseenergy}) (1hsk {harmonicspectralskewness}) (1hsl {harmonicspectralslope}) (1hro {harmonicspectralrolloff}) (1pcn {perceptualspectralcentroid}) (1hsp {harmonicspectralspread}) (1sde {spectraldecrease}) (1htr {harmonictristimulus}) (1sha {sharpness}) (1scm {spectralcrest}) (1scn {spectralcentroid}) (1poe {perceptualoddtoevenratio}) (1sfm {spectralflatness}) (iefd {effectivedurationinfo}) (1psd {perceptualspectraldeviation}) (1pku {perceptualspectralkurtosis}) (1nsn {noisiness}) (1pva {perceptualspectralvariation}) (1psk {perceptualspectralskewness}) (1psl {perceptualspectralslope}) (1pro {perceptualspectralrolloff}) (1psp {perceptualspectralspread}) (1sku {spectralkurtosis}) (1sva {spectralvariation}) (1ptr {perceptualtristimulus}) (1rsl {relativespecificloudness}) (idsc {shorttermfeatureinfo}) (1ssk {spectralskewness}) (1spr {spread}) (1ssl {spectralslope}) (imda {amplitudemodulationampinfo}) (1sro {spectralrolloff}) (1zcr {signalzerocrossingrate}) (1ssp {spectralspread}) (imdf {amplitudemodulationfreqinfo}) (imed {medianfilterinfo}) (imam {weightedmeandeltadeltamedianfilterinfo}) (imao {weightedmeandeltadeltainfo}) (ilat {logattacktimeinfo}) (imdm {weightedmeandeltamedianfilterinfo}) (imdo {weightedmeandeltainfo}) (ioam {deltadeltamedianfilterinfo}) (ioao {deltadeltainfo}) (iodm {deltamedianfilterinfo}) (iodo {deltainfo}) (imod {amplitudemodulationinfo}) (isam {weightedstddeviationdeltadeltamedianfilterinfo}) (isao {weightedstddeviationdeltadeltainfo}) (itde {temporaldecreaseinfo}) (imom {weightedmeanmedianfilterinfo}) (isdm {weightedstddeviationdeltamedianfilterinfo}) (isdo {weightedstddeviationdeltainfo}) (itcn {temporalcentroidinfo}) (1hde {harmonicspectraldecrease}) (1chr {chroma}))
 )

@@ -1,4 +1,11 @@
-;AtomicOrchestrator, 2010 McGill University
+;************************************************************************
+; OM-Pursuit, library for dictionary-based sound modelling in OpenMusic *
+;      (c) 2011-2013 Marlon Schumacher (CIRMMT/McGill University)       *     
+;               https://github.com/marleynoe/OM-Pursuit                 *
+;                                                                       *
+;                DSP based on pydbm - (c) Graham Boyes                  *
+;                  https://github.com/gboyes/pydbm                      *
+;************************************************************************
 ;
 ;This program is free software; you can redistribute it and/or
 ;modify it under the terms of the GNU General Public License
@@ -36,7 +43,7 @@
 (defmethod! in-directories (&key (unix nil) (recursive nil))
               :icon '(250)
               :indoc '("unix format")
-              :doc "Returns a directory pathname .Opens a dialog window to choose the directory. If <unix> is T then the output files is formatted for Unix and system commands."
+              :doc "Returns a directory pathname. Opens a dialog window to choose the directory. If <unix> is T then the output files is formatted for Unix and system commands."
               (let ((path 
                      (if recursive
                          (recurse-dirs (om-choose-directory-dialog))
@@ -75,54 +82,14 @@
                     (namestring path)
                   path)))
 
-(defmethod! in-files (&key (unix nil) (type nil) (directories nil) (files t) (resolve-aliases nil) (hidden-files nil))
+(defmethod! in-files (&key (unix nil) (type nil) (directories nil) (files t) (resolve-aliases nil) (hidden-files nil) (path nil))
             :icon '(250)
             :doc "Returns a list of file pathnames. Opens a dialog window to choose the input-directory. If <unix> is T then the output files is formatted for Unix and system commands."
-            (let* ((thepath (in-directory :unix unix))
+            (let* ((thepath (or path (in-directories :unix unix)))
                   (thefilelist (om-directory thepath 
                                              :type type :directories directories :files files 
                                              :resolve-aliases resolve-aliases :hidden-files hidden-files)))
               thefilelist))
-
-
-; this is original OM-code-------------------------------------------
-#|
-(defmethod! file-chooser (&optional (type 'file) (mode 'existing) (initial-folder nil) (message nil))
-  :icon 186
-  :initvals '(file existing desktop nil)
-  :indoc '("file or directory" "new or existing" "pathname" "prompt for the dialog")
-  :menuins '((0 (("file" 'file) ("directory" 'directory))) 
-             (1 (("new" 'new) ("existing" 'existing))) 
-             (2 (("home" 'home) ("desktop" 'desktop) ("other" nil))))
-  :doc "Pops up a file or directory chooser dialog.
-
-<type> allows to choose between a file or directory.
-<mode> determines whether this should be an existing file or directory or a new one to be created.
-<initial-folder> allows to determine a starting directory for browsing the file system.
-<message> allows to set a specific message on the dialog.
-
-Returns the selected pathname or NIL if cancelled."
-
-  (let ((initfolder 
-         (cond ((equal initial-folder 'home) (om-user-home))
-               ((equal initial-folder 'desktop) (om-make-pathname :directory (append (pathname-directory (om-user-home)) '("Desktop"))))
-               (t *last-imported*)))
-        (rep nil))
-    (setf rep
-          (cond ((and (equal type 'file) (equal mode 'existing))
-                 (om-choose-file-dialog :prompt message :directory initfolder))
-                ((and (equal type 'directory) (equal mode 'existing))
-                 (om-choose-directory-dialog :prompt message :directory initfolder))
-                ((and (equal type 'file) (equal mode 'new))
-                 (om-choose-new-file-dialog :prompt message :directory initfolder))
-                ((and (equal type 'directory) (equal mode 'new))
-                 (om-choose-new-directory-dialog :prompt message :directory initfolder)))
-          )
-    (when rep (setf *last-imported* (om-make-pathname :directory rep)))
-    rep
-    ))
-;--------------------------------------------------
-|#
 
 ;; HANDLE EXISTING DIRS
 

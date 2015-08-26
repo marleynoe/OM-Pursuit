@@ -1,4 +1,11 @@
-;AtomicOrchestrator, 2010 McGill University
+;************************************************************************
+; OM-Pursuit, library for dictionary-based sound modelling in OpenMusic *
+;      (c) 2011-2013 Marlon Schumacher (CIRMMT/McGill University)       *     
+;               https://github.com/marleynoe/OM-Pursuit                 *
+;                                                                       *
+;                DSP based on pydbm - (c) Graham Boyes                  *
+;                  https://github.com/gboyes/pydbm                      *
+;************************************************************************
 ;
 ;This program is free software; you can redistribute it and/or
 ;modify it under the terms of the GNU General Public License
@@ -37,6 +44,8 @@
             (mapcar #'(lambda (theobject) (3dc-scale theobject :ymin ymin :ymax ymax :xmin xmin :xmax xmax :zmin zmin :zmax zmax))
             (bpf-list self)))
 
+
+;not good -> better use the spectrum function
 (defmethod! bpf-ran-colour ((bpf bpf) &key r g b)
             :icon '(402)
   (setf (bpfcolor bpf) (om-make-color (or r (om-random 0. 1.0))
