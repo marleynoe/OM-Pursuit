@@ -27,7 +27,7 @@
 
 (in-package :om)
 
-
+; This function writes a descriptor (SDIF) file for each sound that is analyzed 
 (defmethod! ircamdescriptors ((path-to-exec pathname) (path-to-audio pathname) (path-to-config pathname))
             :icon 30
             :outdoc '("sdiffile object")
@@ -49,15 +49,30 @@
                       (add-tmp-file myoutfile) 
                       ;(when *delete-inter-file* (om-run-process "cleantempfiles" #'sleep&clean 1)) ; could be a higher number...
                       mysdifobj)
+              ; I should make a variable that stores all these paths, and then re-writes them into a single file
               ))
 
-
+#|
 (defmethod! ircamdescriptors ((path-to-exec pathname) (path-to-audio list) (path-to-config pathname))
             (mapcar #'(lambda (audiofiles)
                         (ircamdescriptors path-to-exec audiofiles path-to-config)) path-to-audio)
             )
+|#
 
-
+(defmethod! ircamdescriptors ((path-to-exec pathname) (path-to-audio list) (path-to-config pathname))
+            (let ((numfiles (length path-to-audio)))
+              (om-show-progress-bar "analyzing soundfiles")
+              (loop for path in path-to-audio
+                    for i from 1 to numfiles
+                    do 
+                    (progn
+                      (ircamdescriptors path-to-exec path path-to-config)
+                      (om-set-progress-bar (/ i numfiles))
+                      ;here a 'push' into a variable that stores all the file/pathnames
+                      )
+                    )
+              (om-hide-progress-bar)
+              ))
 
 #|
 ("amplitudemodulationinfo" "IMOD") ("amplitudemodulationampinfo" "IMDA") ("amplitudemodulationfreqinfo" "IMDF") ("deltainfo" "IODO") ("deltadeltainfo" "IOAO") ("deltadeltamedianfilterinfo" "IOAM") ("deltamedianfilterinfo" "IODM") ("effectivedurationinfo" "IEFD") ("logattacktimeinfo" "ILAT") ("medianfilterinfo" "IMED") ("shorttermfeatureinfo" "IDSC") ("temporalcentroidinfo" "ITCN") ("temporaldecreaseinfo" "ITDE") ("temporalincreaseinfo" "ITIN") ("weightedmeaninfo" "IWMN") ("weightedmeandeltainfo" "IMDO") ("weightedmeandeltadeltainfo" "IMAO") ("weightedmeandeltadeltamedianfilterinfo" "IMAM") ("weightedmeandeltamedianfilterinfo" "IMDM") ("weightedmeanmedianfilterinfo" "IMOM") ("weightedstddeviationinfo" "IWSD") ("weightedstddeviationdeltainfo" "ISDO") ("weightedstddeviationdeltadeltainfo" "ISAO") ("weightedstddeviationdeltadeltamedianfilterinfo" "ISAM") ("weightedstddeviationdeltamedianfilterinfo" "ISDM") ("weightedstddeviationmedianfilterinfo" "ISOM")))

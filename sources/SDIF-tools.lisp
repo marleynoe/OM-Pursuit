@@ -41,6 +41,35 @@
 (defun next-frame-is-ok (ptr)
  (good-signature-p (sdif::SdifSignatureToString (sdif::SdifFCurrSignature ptr))))
 
+(defun my-regroup-streams-sub (sdiffile streams streamid)
+  (let* ((stream (first streams))
+         (frametypes (second streams))
+         (matrixtypes (third streams))
+         )
+    (loop for mattype in matrixtypes
+          collect
+          (let ((data-and-times (multiple-value-list (getsdifdata sdiffile stream frametypes mattype 0 nil nil nil nil))))
+            (my-construct-frames frametypes mattype (first (data-and-times)) (second (data-and-times)) streamid)
+            ))))
+  
+
+(defun my-construct-frames (frametype times streamid matrixtype data)
+  ;might later consider using "raw-sdifmatrix"
+  (loop for time in times
+        for datum in data
+        collect
+        (make-instance sdifframe
+                       :signature frametype
+                       :ftime time
+                       :streamid streamid
+                       :lmatrix (make-instance sdifmatrix 
+                                               :numcols 1
+                                               :signature matrixtype
+                                               ;not sure how to specify the name of a keyword
+                                               :value (car datum))
+                       ))
+  )
+
 #|
 (defun get-sdif-file-data (sdiffile mat-types)
  (let* ((path (filepathname sdiffile))

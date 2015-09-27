@@ -34,16 +34,19 @@
 
 
 ; this function for now works without calling the ircamdescriptors (i.e. only using duration)
+; WHEN an SDIF file is connected, it should assume it's an ircamdescriptor file and it should have a different method for this, which parses the SDIF file and adds the other fields
 (defmethod! pursuit-dictionary ((soundgrain-paths list) (sdifpath pathname) &key sdiftypes add-frames)
             :icon 05
             :initvals '(nil nil nil nil)
             :indoc '("1" "path for resulting output sdiffile" "list of types for sdif frame+matrixtypes to be included in sdiffile" "add additional custom sdif frames")
             :doc "The OM-Pursuit dictionary building function"
             :outdoc '("dictionary as sdif file")
+            ;this assumes there's only a single list of paths
             (let ((sid-list (flat
                              (loop for path in soundgrain-paths
                                    for i from 1 to (length soundgrain-paths) collect
-                                  (make-instance 'sdifsid :id i :source (namestring path) :treeway (makestring 1))) ; all paths are corpus = 1?
+                                   (make-instance 'sdifsid :id i :source (format nil "~s.~s" (pathname-name path) (pathname-type path)) :treeway (makestring 1)))
+                                  ;(make-instance 'sdifsid :id i :source (namestring path) :treeway (makestring 1))) ; all paths are corpus = 1?
                                      ))
                   (sdifframelist (flat
                                   (loop for path in soundgrain-paths
