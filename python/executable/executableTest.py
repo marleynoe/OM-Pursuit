@@ -1,10 +1,10 @@
 import os
 
-dictPath = '~/Research/OM-pursuit/dictionaries/strings+benvibes.dict.sdif'
-constraintPath = '~/Research/OM-Pursuit/constraints/harm_fof/harm_fof-2.mpctr.sdif'
-targetPath = '~/Research/OM-Pursuit/target/harm_fof/harm_fof.wav'
-markerPath = '~/Research/OM-Pursuit/target/harm_fof/harm_fof.mrk.sdif'
-mpconstrPath = '~/Research/OM-Pursuit/constraints/new-mp-constraints/maxatoms-and-corpatoms-and-mindistance.glmpctr.sdif'
+dictPath = '/Users/geb/Documents/Development/OM-Pursuit_final/OM-Pursuit_final/dictionaries/Benvibes/Benvibes-new.dict.sdif'
+constraintPath = '/Users/geb/Documents/Development/OM-Pursuit_final/OM-Pursuit_final/constraints/newbuzz'
+targetPath = '/Users/geb/Documents/Development/OM-Pursuit_final/OM-Pursuit_final/targets/buzz/buzz-scale.aiff'
+markerPath = '"/Users/geb/Documents/Development/OM-Pursuit_final/OM-Pursuit_final/targets/buzz/buzz-scale_markers(50ms).sdif"'
+mpconstrPath = 'Users/geb/Documents/Development/OM-Pursuit_final/OM-Pursuit_final/constraints/newbuzz/buzz-1FQ0-2ndorder.sdif'
 
 root = '~/Research/OM-Pursuit/output'
 modPath = '%s/modEx.aif'%root

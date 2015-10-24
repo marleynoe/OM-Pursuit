@@ -46,7 +46,8 @@ if __name__ == '__main__':
 
     A.writeModelSdif(args.sdif_output_path)
     
-    #duration of analysis procedure, target name, SRR    if args.logfile != None:
+    #duration of analysis procedure, target name, SRR    
+    if args.logfile != None:
         f = open(os.path.expanduser(args.logfile), 'w')
         f.write('Dictionary : %s\n'%args.dictionary_path)
         f.write('Constraint : %s\n'%args.constraint_path)

@@ -9,7 +9,8 @@ from setuptools import setup
 
 APP = ['OM-Pursuit.py']
 DATA_FILES = []
-OPTIONS = {'argv_emulation': True}
+OPTIONS = {'argv_emulation': True, 'excludes' :['matplotlib', 'ipython'], 'includes':['OMPursuit']}
+
 
 setup(
     app=APP,
