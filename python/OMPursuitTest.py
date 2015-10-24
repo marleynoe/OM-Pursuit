@@ -14,7 +14,7 @@ path = '/Users/geb/Documents/Development/OM-Pursuit_final/OM-Pursuit_final/dicti
 constraint_path = '/Users/geb/Documents/Development/OM-Pursuit_final/OM-Pursuit_final/constraints/newbuzz'
 # constraint_path = '/Users/geb/Desktop/notworking'
 targetPath = '/Users/geb/Documents/Development/OM-Pursuit_final/OM-Pursuit_final/targets/buzz/buzz-scale.aiff'
-markerPath = '/Users/geb/Documents/Development/OM-Pursuit_final/OM-Pursuit_final/targets/buzz/buzz-scale_markers(1000ms).sdif'
+markerPath = '/Users/geb/Documents/Development/OM-Pursuit_final/OM-Pursuit_final/targets/buzz/buzz-scale_markers(100ms).sdif'
 mpconstrPath = '/Users/geb/Documents/Development/OM-Pursuit_final/OM-Pursuit_final/constraints/mp-constraints/buzz_maxatoms+min_inter_onset.mpctr.sdif'
 
 dsfactor = 1

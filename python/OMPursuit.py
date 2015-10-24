@@ -124,21 +124,31 @@ class OMPursuitConstraint(OMPursuitAbstractConstraint):
             if self.order == 0:
                 return set([i for i in range(1, D.len()+1) if self.operator(D.soundgrains[i].averagedDescriptors[self.cSignature], value)])
             else:
-                
-                # if there are not enough entries in the model yet, return all
-                if (modelArray.size <= self.order+1):
-                    return set([i for i in range(1, D.len()+1)])
-
+                # deal with simultaneous entries in the model
                 uTimes = np.unique(modelArray['mtime'])
                 uL = len(uTimes)
                 mutt = np.zeros(uL+1, dtype=modelArray.dtype)
                 uTcount = 0
+                contained = False
                 for uT in uTimes:
+                    if uT == time:
+                        contained = True
+                        continue
                     wuT = np.where(modelArray['mtime'] == uT)[0]
                     #uTind = wuT[np.randoom.randInt(0, len(wuT)-1)]
                     uTind = wuT[0]
                     mutt[uTcount] = modelArray[uTind]
                     uTcount += 1 
+
+                if contained:
+                    mutt = mutt[0:len(mutt)-1]
+
+                # if there are not enough entries in the model yet, return all
+                bbb = np.where(mutt['mtime'] < time)[0]
+                aaa = np.where(mutt['mtime'] > time)[0]
+                # if (modelArray.size <= self.order+1):
+                if (len(bbb) < self.order+1) or (len(aaa) < self.order):
+                    return set([i for i in range(1, D.len()+1)])
 
                 # make a set to store the results 
                 s = set()
@@ -150,11 +160,28 @@ class OMPursuitConstraint(OMPursuitAbstractConstraint):
                     d = D.soundgrains[i]
                     m = mutt.copy()
 
-                    # inset the candidate
+                    # insert the candidate and reorder
                     m[m.size-1][self.cSignature] = d.averagedDescriptors[self.cSignature]
                     m[m.size-1]['mtime'] = time
                     m.sort(order='mtime') 
 
+                    # find the index of the candidate
+                    cind = np.where(m['mtime'] == time)[0]
+                    cind = cind[0]
+
+                    mm = m[self.cSignature]
+                    lval = np.diff(mm[cind-self.order:cind+1], n=self.order)
+                    rval = np.diff(mm[cind:cind+self.order+1], n=self.order)
+
+                    #print(value, lval, rval)
+
+                    if self.operator(lval, value) and self.operator(rval, value):
+                        #print("Constraint value is %0.1f, lef derived value is %0.1f, right derived value is %0.1f"%(value, lval, rval))
+                        s.add(i)
+                    
+
+
+                    '''
                     # calculate the discrete difference for the given order
                     mm = m[self.cSignature]
                     difference = np.diff(mm, n=self.order)
@@ -177,9 +204,11 @@ class OMPursuitConstraint(OMPursuitAbstractConstraint):
 
                     # add to set if the operator works
                     if self.operator(v, value):
-                        print("Adding atom at index %d"%i)
-                        print("Constraint value is %0.1f, derived value is %0.1f"%(value, v))
+                        # print("Constraint value is %0.1f, derived value is %0.1f"%(value, v))
                         s.add(i)
+                    '''
+                    
+
 
                 # print("Excluded %d items"%(len(D.soundgrains) - len(s)))
                 return s
@@ -257,26 +286,26 @@ class OMPursuitCompoundConstraint(OMPursuitAbstractConstraintContainer):
     def cFullConstraintFunction(self, D, Model, time):
 
         if not hasattr(self, 'dictionaryReference'):        
-            self.dictionaryReference = D #keep a reference to the dictionary in name space
+            self.dictionaryReference = D # keep a reference to the dictionary in name space
             self.fullConstraintString = re.sub('nil', str(set(D.soundgrains.keys())), self.fullConstraintString)
 
-        #simplest case, only one constraint
+        # simplest case, only one constraint
         tempString = self.fullConstraintString
 
-        #first check and replace the constraint functions
+        # first check and replace the constraint functions
         for c in self.constraints.values():
             tempString = re.sub(c.cString, str(c.cFunction(D, Model, time)), tempString)
 
-        #then check and replace the combination operators        
+        # then check and replace the combination operators        
         for k in self.operatorLookup.keys():
             if k in tempString: 
                 tempString = re.sub(k, self.operatorLookup[k], tempString)
         
-        #finally return the evaluated string, yields a set of indices
+        # finally return the evaluated string, yields a set of indices
         return(eval(tempString))
 
 
-    #TODO: refactor, many of these are basically duplicates of functions from the operator module and are added for consistency 
+    # TODO: refactor, many of these are basically duplicates of functions from the operator module and are added for consistency 
     def andOMP(self, indices1, indices2):
         return operator.and_(indices1, indices2)
 
@@ -587,7 +616,7 @@ class OMPursuitAnalysis:
 
                 self.ompDictionary.reinitWeights()
 
-            #TODO:Here metaconstraints could be added, e.g. weight the coefficients based on polyphony (number of soundgrains at a location)
+            # TODO: Here metaconstraints could be added, e.g. weight the coefficients based on polyphony (number of soundgrains at a location)
 
             validSoundgrain = False
             scoefinds = np.argsort(abs(coefficients.flatten()))[::-1]
@@ -675,7 +704,7 @@ class OMPursuitAnalysis:
 
 
                     ntime = [self.ompMarkers.times[k] for k in pq]
-                    ntime.append(dummyTimes[i[0]]) #don't exclude the current time point, i.e. simultaneous sgs 
+                    ntime.append(dummyTimes[i[0]]) # don't exclude the current time point, i.e. simultaneous sgs 
                     dummyTimes = np.sort(np.array(ntime))
                     coefficients = np.zeros((len(dummyTimes), self.ompDictionary.len()))
                     cindices = np.zeros((len(dummyTimes), self.ompDictionary.len()), dtype=int)
