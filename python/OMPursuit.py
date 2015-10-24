@@ -114,6 +114,47 @@ class OMPursuitConstraint(OMPursuitAbstractConstraint):
         self.order = eval(parsedConstraintString[2]) # order, 0 means no derivative 
         self.index = eval(parsedConstraintString[3])
 
+
+    def preprocessModel(self, modelArray, time):
+
+        # deal with simultaneous entries in the model
+        uTimes = np.unique(modelArray['mtime'])
+        uL = len(uTimes)
+        pm = np.zeros(uL+1, dtype=modelArray.dtype)
+        uTcount = 0
+        contained = False
+        for uT in uTimes:
+            if uT == time:
+                contained = True
+                continue
+            wuT = np.where(modelArray['mtime'] == uT)[0]
+            #uTind = wuT[np.randoom.randInt(0, len(wuT)-1)]
+            uTind = wuT[0]
+            pm[uTcount] = modelArray[uTind]
+            uTcount += 1 
+
+        if contained:
+            pm = pm[0:len(pm)-1]
+
+        return pm
+
+    def evaluateOrderedConstraint(self, model, soundgrain, time):
+
+         # insert the candidate and reorder
+        model[model.size-1][self.cSignature] = soundgrain.averagedDescriptors[self.cSignature]
+        model[model.size-1]['mtime'] = time
+        model.sort(order='mtime') 
+
+        # find the index of the candidate
+        inds = np.where(model['mtime'] == time)[0]
+        ind = inds[0]
+
+        mp = model[self.cSignature]
+        lval = np.diff(mp[ind-self.order:ind+1], n=self.order)
+        rval = np.diff(mp[ind:ind+self.order+1], n=self.order)
+
+        return (lval, rval)
+
     def cFunction(self, D, modelArray, time):
 
         #interpolate constraint curve
@@ -124,93 +165,26 @@ class OMPursuitConstraint(OMPursuitAbstractConstraint):
             if self.order == 0:
                 return set([i for i in range(1, D.len()+1) if self.operator(D.soundgrains[i].averagedDescriptors[self.cSignature], value)])
             else:
-                # deal with simultaneous entries in the model
-                uTimes = np.unique(modelArray['mtime'])
-                uL = len(uTimes)
-                mutt = np.zeros(uL+1, dtype=modelArray.dtype)
-                uTcount = 0
-                contained = False
-                for uT in uTimes:
-                    if uT == time:
-                        contained = True
-                        continue
-                    wuT = np.where(modelArray['mtime'] == uT)[0]
-                    #uTind = wuT[np.randoom.randInt(0, len(wuT)-1)]
-                    uTind = wuT[0]
-                    mutt[uTcount] = modelArray[uTind]
-                    uTcount += 1 
-
-                if contained:
-                    mutt = mutt[0:len(mutt)-1]
+                
+                pModelArray = self.preprocessModel(modelArray, time)
 
                 # if there are not enough entries in the model yet, return all
-                bbb = np.where(mutt['mtime'] < time)[0]
-                aaa = np.where(mutt['mtime'] > time)[0]
-                # if (modelArray.size <= self.order+1):
+                bbb = np.where(pModelArray['mtime'] < time)[0]
+                aaa = np.where(pModelArray['mtime'] > time)[0]
+                
                 if (len(bbb) < self.order+1) or (len(aaa) < self.order):
                     return set([i for i in range(1, D.len()+1)])
 
                 # make a set to store the results 
                 s = set()
                 for i in range(1, D.len()+1):
-
-                    dummytime = time
-
-                    # 
                     d = D.soundgrains[i]
-                    m = mutt.copy()
-
-                    # insert the candidate and reorder
-                    m[m.size-1][self.cSignature] = d.averagedDescriptors[self.cSignature]
-                    m[m.size-1]['mtime'] = time
-                    m.sort(order='mtime') 
-
-                    # find the index of the candidate
-                    cind = np.where(m['mtime'] == time)[0]
-                    cind = cind[0]
-
-                    mm = m[self.cSignature]
-                    lval = np.diff(mm[cind-self.order:cind+1], n=self.order)
-                    rval = np.diff(mm[cind:cind+self.order+1], n=self.order)
-
-                    #print(value, lval, rval)
+                    m = pModelArray.copy()
+                    lval, rval = self.evaluateOrderedConstraint(m, d, time)
 
                     if self.operator(lval, value) and self.operator(rval, value):
-                        #print("Constraint value is %0.1f, lef derived value is %0.1f, right derived value is %0.1f"%(value, lval, rval))
                         s.add(i)
                     
-
-
-                    '''
-                    # calculate the discrete difference for the given order
-                    mm = m[self.cSignature]
-                    difference = np.diff(mm, n=self.order)
-
-                    # derive the time values
-                    t_ = m['mtime']
-                    for tcount in xrange(0, self.order):
-                        t_ = t_[0:len(t_)-1] + np.diff(t_)/2
-
-                    f = interp1d(t_, difference)
-
-                    # take the bounds if time is outside 
-                    if dummytime < np.min(t_):
-                        dummytime = np.min(t_)
-                    elif dummytime > np.max(t_):
-                        dummytime = np.max(t_)
-
-                    # interpolate the value for a time 
-                    v = f(dummytime)
-
-                    # add to set if the operator works
-                    if self.operator(v, value):
-                        # print("Constraint value is %0.1f, derived value is %0.1f"%(value, v))
-                        s.add(i)
-                    '''
-                    
-
-
-                # print("Excluded %d items"%(len(D.soundgrains) - len(s)))
                 return s
 
 
@@ -245,13 +219,27 @@ class OMPursuitConstraint(OMPursuitAbstractConstraint):
 
             else:
 
-                #need to store the coordinates and find the k closest 2d points to the value
+                pModelArray = self.preprocessModel(modelArray, time)
 
-                q = np.zeros(D.len())
-                for k in range(1, D.len()+1):
-                    q[k-1] = D.soundgrains[k].averagedDescriptors[self.cSignature].copy()
-            
-                return set(np.argsort(np.abs(q - value))[0:self.kn] + 1)
+                # if there are not enough entries in the model yet, return all
+                bbb = np.where(pModelArray['mtime'] < time)[0]
+                aaa = np.where(pModelArray['mtime'] > time)[0]
+                if (len(bbb) < self.order+1) or (len(aaa) < self.order):
+                    return set([i for i in range(1, D.len()+1)])
+
+                opt = []
+                for i in range(1, D.len()+1):
+
+                    d = D.soundgrains[i]
+                    m = pModelArray.copy()
+
+                    lval, rval = self.evaluateOrderedConstraint(m, d, time)
+                    opt.append((value-lval, value-rval)) # distance from value, i.e. value centred at (0,0)
+
+                opt = np.array([linalg.norm(k) for k in opt])
+                s = set(np.argsort(opt)[0:self.kn] + 1)
+
+                return s
         
             
 
