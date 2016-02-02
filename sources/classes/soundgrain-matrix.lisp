@@ -128,8 +128,8 @@ See http://sdif.sourceforge.net/standard/sdif-standard.html#Stream%20IDs%20Table
             :numouts 8
             :outdoc '("numatoms" "onset" "duration" "amplitude" "file-index" "corpus-index" "iteration-id" "filepath")
             
-            (let* ((thestreams (pursuit-sdif-streams self))
-                   (thepaths (pursuit-sid-paths self thestreams))
+            (let* ((thestreams (pursuit-sdif-streams self)) ; the SIDs of the streams in the file
+                   (thepaths (pursuit-sid-paths self thestreams)) ; the paths associated to the streams in the SID table
                    (theglobaldata 
                     (loop for stream in thestreams 
                           for path in thepaths collect
@@ -163,8 +163,8 @@ See http://sdif.sourceforge.net/standard/sdif-standard.html#Stream%20IDs%20Table
             :numouts 1
             :outdoc '("numatoms" "onset" "duration" "amplitude" "file-index" "corpus-index" "iteration-id" "filepath")
             
-            (let* ((thestreams (pursuit-sdif-streams self))
-                   (thepaths (pursuit-sid-paths self thestreams))
+            (let* ((thestreams (pursuit-sdif-streams self)) ; the SIDs of the streams in the file
+                   (thepaths (pursuit-sid-paths self thestreams)) ; the paths associated to the streams in the SID table
                    (theglobaldata 
                     (loop for stream in thestreams 
                           for path in thepaths collect

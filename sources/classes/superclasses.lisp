@@ -80,5 +80,5 @@
            (:icon 03)
            )
 
-(defmethod get-fonde-pict ((self sound-array)) *my-bg-pict*)
-(defmethod get-fonde-pict ((self sound-atom)) *my-bg-pict*)
+;(defmethod get-fonde-pict ((self sound-array)) *my-bg-pict*)
+;(defmethod get-fonde-pict ((self sound-atom)) *my-bg-pict*)

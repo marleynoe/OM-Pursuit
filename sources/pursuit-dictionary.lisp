@@ -64,6 +64,9 @@
               ;(list sid-list sdifframelist)
             ))
 ; this will need methods for lists of lists (to write the corpora) -> or otherwise when provided as flattended list? no corpus distinction!
+; Also, to consider: Either the function 'pursuit-dictionary' takes a list of SDIF files to write into a single one, or it takes a list of soundfiles and does everything internally
+; ml
+
 
 #|
 ;needs something like this for the header:

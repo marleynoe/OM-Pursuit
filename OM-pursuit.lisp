@@ -1,7 +1,7 @@
 ;************************************************************************
 ;                              OM-Pursuit                               *
 ;       library for dictionary-based sound modelling in OpenMusic       *
-;      (c) 2011-2015 Marlon Schumacher (CIRMMT/McGill University)       *     
+;      (c) 2011-2016 Marlon Schumacher (CIRMMT/McGill University)       *     
 ;               https://github.com/marleynoe/OM-Pursuit                 *
 ;                                                                       *
 ;                DSP based on pydbm - (c) Graham Boyes                  *
@@ -131,7 +131,7 @@
                   OM-Pursuit v1.0beta
      Dictionary-based Sound Modelling in OpenMusic
 
-(c) 2011-2013, Marlon Schumacher (CIRMMT/McGill University)
+(c) 2011-2016, Marlon Schumacher (CIRMMT/McGill University)
          https://github.com/marleynoe/OM-Pursuit
 
           DSP based on pydbm by Graham Boyes 
@@ -151,7 +151,7 @@
    *                  OM-PURSUIT                   *
    * Dictionary-based Sound Modelling in OpenMusic *
    *                                               *
-   *       (c) 2011-2013 Marlon Schumacher         *
+   *       (c) 2011-2016 Marlon Schumacher         *
    *    https://github.com/marleynoe/OM-Pursuit    *
    *                                               *
    *     DSP based on pydbm - (c) Graham Boyes     *
