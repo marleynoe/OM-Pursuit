@@ -73,7 +73,7 @@
                                   ("array-field" nil nil (process-array-field array-field field-lowpass field-highpass) nil))
                                  nil nil nil)
                     ("Utilities" (
-                                  (nil nil nil (get-bpf-points atoms->chords ) nil)))                   
+                                  (nil nil nil (get-bpf-points atoms->chords partials->bpflib) nil)))                   
                     ))
          
 ;(sub-pack-name subpack-lists class-list function-list class-alias-list)
