@@ -1,17 +1,20 @@
 # Mac OSX Finder
 
 .DS_Store
-# *(Autosaved).* 
-
+# *(Autosaved).*
+*.dmg
+*.zip
 
 # LispWorks files
-*.xfasl
+*.*fasl
 *.fasl
 *.nfasl
 *.ofasl
 *.ufasl
 *.lisp~
 *.lisp#
+
+/reference-pages/*
 
 # Python
 *.py~
